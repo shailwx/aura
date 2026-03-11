@@ -132,6 +132,7 @@ aura/
 | Document | Description |
 | :--- | :--- |
 | [Business Guide](docs/BUSINESS_GUIDE.md) | What Aura does, business value, use cases, glossary — no code |
+| [Demo Script](docs/DEMO_SCRIPT.md) | Hackathon pitch guide, live demo steps, and judge Q&A prep |
 | [PRD](AURA_PRD.md) | Full Product Requirements Document |
 
 ### For Technical Users
