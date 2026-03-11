@@ -27,7 +27,23 @@ Aura automates the full B2B procurement lifecycle — from vendor discovery to p
 | **Sentinel** | KYC/AML compliance gate via Core Banking (BMS) | BMS Compliance API |
 | **Closer** | Generates Intent Mandate and settles via AP2 | AP2 `IntentMandate` + ECDSA-P256 |
 
-**Flow:** User → Architect → Scout → Sentinel → Closer → Settlement
+```mermaid
+flowchart LR
+    User(["👤 User"])
+    Architect["🏛️ Architect\nOrchestrator"]
+    Scout["🔭 Scout\nUCP Discovery"]
+    Sentinel["🛡️ Sentinel\nKYC/AML Gate"]
+    Closer["💳 Closer\nAP2 Settlement"]
+    Settlement(["✅ Settlement"])
+    Blocked(["⛔ Blocked"])
+
+    User -->|procurement request| Architect
+    Architect -->|delegate| Scout
+    Scout -->|vendor list| Sentinel
+    Sentinel -->|APPROVED| Closer
+    Sentinel -->|COMPLIANCE_BLOCKED| Blocked
+    Closer --> Settlement
+```
 
 ---
 
