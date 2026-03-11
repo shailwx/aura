@@ -17,6 +17,53 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [feat/policy-engine] — Unreleased
+
+> Policy Engine feature branch (#15). Adds three-stage governance rules for procurement.
+
+### Added
+
+#### Policy Engine (`tools/`)
+- `tools/policy_store.py` — `PolicyStore` singleton with 6 default rules (SPENDING_LIMIT, GEO_RESTRICTION, CATEGORY_ALLOWLIST, APPROVAL_THRESHOLD, CERTIFICATION_REQUIRED, RATE_LIMIT); atomic JSON persistence to `tmp/policies.json`; `ReviewStore` for human-in-the-loop payment review queue
+- `tools/policy_tools.py` — Three evaluation functions consumed by agents:
+  - `evaluate_procurement_policy(request)` — pre-flight gate (category, spending, rate limits)
+  - `evaluate_vendor_policy(vendor, amount)` — vendor gate (geo-restriction, certifications, approval thresholds)
+  - `evaluate_payment_policy(mandate, user_id)` — payment gate (approval thresholds, daily spend limits)
+  - `RateLimitStore` — sliding-window per-user rate limiting (in-memory)
+  - `DailySpendStore` — per-user daily spend accumulation (in-memory)
+
+#### Governor Agent (`agents/`)
+- `agents/governor.py` — New pre-flight `LlmAgent`; inserted first in the pipeline before Scout; outputs POLICY_CLEAR / POLICY_WARNINGS / POLICY_REVIEW_REQUIRED / POLICY_BLOCKED
+
+#### Pipeline Changes
+- `agents/architect.py` — Updated pipeline: `Governor → Scout → Sentinel → Closer` (previously `Scout → Sentinel → Closer`)
+- `agents/sentinel.py` — Added `evaluate_vendor_policy` tool; now runs both BMS compliance check AND vendor policy check per vendor
+- `agents/closer.py` — Added `evaluate_payment_policy` tool; checks `governor_results` and `sentinel_results` for policy/compliance blocks before any payment settlement
+
+#### Policy Management REST API (`main.py`)
+- `GET /policies` — list all policy rules
+- `POST /policies` — create rule (requires `X-Admin-Token` header)
+- `GET /policies/{rule_id}` — get single rule
+- `PUT /policies/{rule_id}` — partial update (requires `X-Admin-Token`)
+- `DELETE /policies/{rule_id}` — delete rule, returns 204 (requires `X-Admin-Token`)
+- `GET /reviews` — list pending payment reviews
+- `POST /reviews/{id}/approve` — approve a review (requires `X-Admin-Token`)
+- `POST /reviews/{id}/reject` — reject a review (requires `X-Admin-Token`)
+
+#### Kubernetes (`kagent.yaml`)
+- `aura-admin-token` Kubernetes Secret manifest for `AURA_ADMIN_TOKEN`
+- Governor Agent CRD with `evaluate_procurement_policy` MCP tool
+- All agents (Scout, Sentinel, Closer, Architect) updated with `AURA_ADMIN_TOKEN` env var
+- Sentinel and Closer updated with new policy tool registrations
+
+#### Tests (`tests/`)
+- `tests/test_policy_tools.py` — 27 new unit tests covering all 6 rule types, rate limiting, daily spend, snapshot hashing, and disabled-rule bypass
+
+#### Documentation
+- `docs/AGENT_FLOW.md` — Rewritten with three Mermaid sequence diagrams: Happy Path, Policy Block (Governor halts pre-flight), Compliance Block (Sentinel → Closer aborts)
+
+---
+
 ## [0.1.0-hackathon] — 2026-03-11
 
 > Hackathon prototype delivered at **Google AI Agent Labs Oslo 2026 — Team 6**.
