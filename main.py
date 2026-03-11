@@ -21,6 +21,7 @@ import logging
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
@@ -37,6 +38,8 @@ from tools.auth_tools import AuthIdentity, require_procurement_identity
 from tools.observability_tools import CORRELATION_HEADER, METRICS, get_correlation_id, log_event
 from tools.session_tools import build_session_service
 from tools.policy_store import PolicyRule, PolicyStore, ReviewStore, RuleType, Severity
+
+from ui.portal_router import router as portal_router
 
 load_dotenv()
 
@@ -71,6 +74,10 @@ app = FastAPI(
     version="2026.1.0",
     lifespan=lifespan,
 )
+
+# ── Portal ─────────────────────────────────────────────────────────────────────
+app.include_router(portal_router)
+app.mount("/portal", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "ui", "static"), html=True), name="portal")
 
 
 @app.middleware("http")

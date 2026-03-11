@@ -45,6 +45,33 @@ PLATFORM_REBATE_TIERS: list[dict[str, Any]] = [
 ]
 
 
+
+@dataclass
+class PricingTier:
+    """A single volume pricing tier offered by a vendor.
+
+    Attributes:
+        min_qty: Minimum number of units for this tier to apply (inclusive).
+        max_qty: Maximum number of units for this tier (inclusive); None = no upper bound.
+        unit_price_usd: Per-unit price in USD at this tier.
+        discount_pct: Percentage discount off the base (Tier-1) price.
+    """
+
+    min_qty: int
+    max_qty: int | None
+    unit_price_usd: float
+    discount_pct: float
+
+
+# Platform-level rebate applied on top of any vendor tier.
+# These percentages are deducted from the vendor-tier unit price.
+PLATFORM_REBATE_TIERS: list[dict[str, Any]] = [
+    {"min_qty": 0,  "max_qty": 4,    "rebate_pct": 0.0},
+    {"min_qty": 5,  "max_qty": 19,   "rebate_pct": 1.0},
+    {"min_qty": 20, "max_qty": None,  "rebate_pct": 2.0},
+]
+
+
 @dataclass
 class VendorEndpoint:
     id: str
@@ -56,6 +83,7 @@ class VendorEndpoint:
     ucp_endpoint: str
     country: str
     pricing_tiers: list[PricingTier] = field(default_factory=list)
+    org_number: str | None = None  # 9-digit Norwegian Brønnøysund registry ID
 
 
 _MOCK_VENDOR_DB: list[VendorEndpoint] = [
@@ -73,6 +101,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1199.00, discount_pct=7.7),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=999.00,  discount_pct=23.1),
         ],
+        org_number="914325762",
     ),
     VendorEndpoint(
         id="v-002",
@@ -88,6 +117,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1249.00, discount_pct=7.4),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=1049.00, discount_pct=22.3),
         ],
+        org_number="123456789",
     ),
     VendorEndpoint(
         id="v-003",
@@ -103,6 +133,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1180.00, discount_pct=7.8),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=980.00,  discount_pct=23.4),
         ],
+        org_number="914778271",
     ),
     VendorEndpoint(
         id="v-999",
