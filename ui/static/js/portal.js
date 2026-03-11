@@ -11,6 +11,10 @@ const ROLES = {
     icon: "🛒",
     sections: [
       {
+        label: "HOME",
+        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+      },
+      {
         label: "OBSERVE",
         items: [
           { id: "history",   icon: "≡", label: "Request History" },
@@ -24,12 +28,16 @@ const ROLES = {
         ],
       },
     ],
-    default: "history",
+    default: "overview",
   },
   finance: {
     label: "Finance Approver",
     icon: "💳",
     sections: [
+      {
+        label: "HOME",
+        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+      },
       {
         label: "REVIEW",
         items: [
@@ -38,12 +46,16 @@ const ROLES = {
         ],
       },
     ],
-    default: "pending",
+    default: "overview",
   },
   compliance: {
     label: "Compliance Officer",
     icon: "🔍",
     sections: [
+      {
+        label: "HOME",
+        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+      },
       {
         label: "MONITOR",
         items: [
@@ -53,12 +65,16 @@ const ROLES = {
         ],
       },
     ],
-    default: "events",
+    default: "overview",
   },
   itmanager: {
     label: "IT Manager",
     icon: "💻",
     sections: [
+      {
+        label: "HOME",
+        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+      },
       {
         label: "CATALOG",
         items: [
@@ -67,12 +83,16 @@ const ROLES = {
         ],
       },
     ],
-    default: "vendors",
+    default: "overview",
   },
   admin: {
     label: "Admin",
     icon: "⚙",
     sections: [
+      {
+        label: "HOME",
+        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+      },
       {
         label: "RUN & OPERATE",
         items: [
@@ -82,7 +102,7 @@ const ROLES = {
         ],
       },
     ],
-    default: "metrics",
+    default: "overview",
   },
 };
 
@@ -195,6 +215,8 @@ async function loadView(viewId) {
   toolbarActions.innerHTML = "";
 
   const viewMap = {
+    // Overview
+    overview:  () => fetchAndRender("/api/portal/overview", renderOverview, 8000),
     // Procurement
     history:   () => fetchAndRender("/api/portal/procurement/history",  renderHistory),
     pipelines: () => fetchAndRender("/api/portal/procurement/pipelines", renderPipelines),
@@ -291,6 +313,111 @@ function addNewRequestBtn() {
   btn.textContent = "+ New Request";
   btn.addEventListener("click", openModal);
   toolbarActions.appendChild(btn);
+}
+
+
+// ── OVERVIEW: System dashboard ───────────────────────────────────────────────
+
+function renderOverview(data) {
+  toolbarActions.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">↻ Auto-refresh every 8s</span>`;
+
+  const agentMeta = {
+    Architect: { icon: "🏛️", role: "Pipeline Commander" },
+    Governor:  { icon: "⚖️",  role: "Policy Gatekeeper" },
+    Scout:     { icon: "🔭", role: "Vendor Pathfinder" },
+    Sentinel:  { icon: "🛡️", role: "Compliance Guardian" },
+    Closer:    { icon: "💳", role: "Deal Executor" },
+  };
+
+  const agentNodes = Object.entries(data.agents).map(([name, info], i, arr) => {
+    const meta = agentMeta[name] || { icon: "◈", role: "" };
+    const arrow = i < arr.length - 1 ? `<div class="ov-arrow">→</div>` : "";
+    return `
+      <div class="ov-agent">
+        <div class="ov-agent-icon">${meta.icon}</div>
+        <div class="ov-agent-name">${name}</div>
+        <div class="ov-agent-role">${meta.role}</div>
+        <div class="ov-agent-stat">${info.invocations} calls · ${info.avg_ms}ms</div>
+      </div>${arrow}`;
+  }).join("");
+
+  const recentRows = (data.recent || []).map(r => `
+    <tr>
+      <td>${badge(r.status)}</td>
+      <td><span class="td-mono">${r.id}</span></td>
+      <td>${r.description}</td>
+      <td>${r.vendor || "—"}</td>
+      <td class="text-right td-amount">${usd(r.amount_usd)}</td>
+    </tr>`).join("");
+
+  viewEl.innerHTML = `
+    <div class="overview-hero">
+      <div class="overview-hero-left">
+        <div class="overview-title">Aura <span class="overview-badge-demo">DEMO</span></div>
+        <div class="overview-subtitle">Autonomous Reliable Agentic Commerce &middot; Google ADK + Gemini 2.5 Flash via Vertex AI</div>
+        <div class="overview-tagline">5-agent sequential pipeline: intent &rarr; policy gate &rarr; vendor discovery &rarr; KYC/AML &rarr; AP2 settlement</div>
+      </div>
+      <div class="overview-hero-right">
+        <div class="overview-live-dot"></div>
+        <span class="overview-live-label">LIVE &mdash; ${data.active_pipelines} pipeline${data.active_pipelines !== 1 ? "s" : ""} active</span>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card teal">
+        <div class="stat-value">${data.total_requests}</div>
+        <div class="stat-label">Total Requests</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value">${data.settled}</div>
+        <div class="stat-label">Settled (${data.settlement_rate_pct}%)</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-value">${data.blocked}</div>
+        <div class="stat-label">Blocked by AML / KYC</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-value">${data.review}</div>
+        <div class="stat-label">Under Review</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${(data.avg_latency_ms / 1000).toFixed(1)}s</div>
+        <div class="stat-label">Avg Pipeline Latency</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${data.blocked_vendors_count}</div>
+        <div class="stat-label">Blocked Vendors</div>
+      </div>
+    </div>
+
+    <div class="overview-pipeline-card">
+      <div class="table-card-header">
+        <span class="table-card-title">Agent Pipeline &mdash; 5-Stage Sequential Flow</span>
+        <span class="table-card-meta">Updated: ${data.last_updated}</span>
+      </div>
+      <div class="overview-pipeline">${agentNodes}</div>
+      <div class="overview-pipeline-footer">
+        All agents invoke <strong>Gemini 2.5 Flash</strong> via Vertex AI
+        &nbsp;&middot;&nbsp; Protocols: <strong>UCP</strong> &middot; <strong>BMS</strong> &middot; <strong>AP2</strong>
+        &nbsp;&middot;&nbsp; Orchestrated by <strong>Google ADK</strong>
+      </div>
+    </div>
+
+    ${data.recent && data.recent.length ? `
+    <div class="table-card">
+      <div class="table-card-header">
+        <span class="table-card-title">Recent Requests</span>
+        <span class="table-card-meta">Last ${data.recent.length} of ${data.total_requests}</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th><th>Request ID</th><th>Description</th><th>Vendor</th><th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${recentRows}</tbody>
+      </table>
+    </div>` : ""}`;
 }
 
 // ── PROCUREMENT: History ──────────────────────────────────────────────────────

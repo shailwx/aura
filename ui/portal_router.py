@@ -111,6 +111,7 @@ async def get_procurement_history() -> list[dict[str, Any]]:
 @router.get("/procurement/pipelines")
 async def get_active_pipelines() -> list[dict[str, Any]]:
     return [
+        {"request_id":"REQ-009","description":"Buy 8 Laptop Pro 15 — bulk order","agents":{"Architect":"done","Governor":"done","Scout":"running","Sentinel":"idle","Closer":"idle"},"current_stage":"Scout querying UCP vendor endpoints…","started_at":_ts(1)},
         {"request_id":"REQ-003","description":"AWS cloud hosting — 12-month reserved","agents":{"Architect":"done","Governor":"done","Scout":"done","Sentinel":"done","Closer":"blocked"},"current_stage":"Awaiting finance approval","started_at":_ts(30)},
         {"request_id":"REQ-006","description":"Agile development sprint — 4 weeks","agents":{"Architect":"done","Governor":"done","Scout":"done","Sentinel":"done","Closer":"blocked"},"current_stage":"Awaiting finance approval","started_at":_ts(15)},
     ]
@@ -189,7 +190,7 @@ async def get_ssa_contracts() -> list[dict[str, Any]]:
 
 @router.get("/admin/metrics")
 async def get_admin_metrics() -> dict[str, Any]:
-    return _AGENT_METRICS
+    return {**_AGENT_METRICS, "last_updated": _ts(0)}
 
 
 @router.get("/admin/policies")
@@ -209,3 +210,29 @@ async def resolve_review_item(item_id: str, action: str = "approve") -> dict[str
             item["status"] = "APPROVED" if action == "approve" else "REJECTED"
             return {"id": item_id, "status": item["status"]}
     raise HTTPException(status_code=404, detail=f"Review item {item_id} not found")
+
+
+# ── Overview ───────────────────────────────────────────────────────────────────
+
+@router.get("/overview")
+async def get_overview() -> dict[str, Any]:
+    return {
+        "total_requests": _AGENT_METRICS["total_requests"],
+        "settled": _AGENT_METRICS["settled"],
+        "blocked": _AGENT_METRICS["blocked"],
+        "review": _AGENT_METRICS["review"],
+        "settlement_rate_pct": round(_AGENT_METRICS["settled"] / _AGENT_METRICS["total_requests"] * 100),
+        "avg_latency_ms": _AGENT_METRICS["avg_latency_ms"],
+        "active_pipelines": 3,
+        "blocked_vendors_count": len(_BLOCKED_VENDORS),
+        "agents": {
+            "Architect":  {"invocations": 47, "status": "healthy", "avg_ms": 310,  "role": "Pipeline Commander"},
+            "Governor":   {"invocations": 46, "status": "healthy", "avg_ms": 210,  "role": "Policy Gatekeeper"},
+            "Scout":      {"invocations": 44, "status": "healthy", "avg_ms": 1420, "role": "Vendor Pathfinder"},
+            "Sentinel":   {"invocations": 42, "status": "healthy", "avg_ms": 860,  "role": "Compliance Guardian"},
+            "Closer":     {"invocations": 32, "status": "healthy", "avg_ms": 480,  "role": "Deal Executor"},
+        },
+        "recent": _PROCUREMENT_HISTORY[:4],
+        "last_updated": _ts(0),
+    }
+
