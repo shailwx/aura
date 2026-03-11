@@ -65,6 +65,11 @@ spec:
               value: europe-north1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
+            - name: AURA_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aura-admin-token
+                  key: token
           resources:
             requests:
               cpu: 250m
@@ -136,15 +141,23 @@ metadata:
     component: closer
     role: settlement
 spec:
-  description: "Handles AP2 payment settlement with Intent Mandate generation."
+  description: "Handles AP2 payment settlement with payment policy evaluation and Intent Mandate generation."
   modelConfig:
     name: gemini-2-flash-vertexai
   systemPrompt: |
     You are the Closer agent in the Aura procurement system.
-    If COMPLIANCE_BLOCKED is present in context: output PAYMENT_ABORTED immediately.
-    Otherwise: generate an IntentMandate and settle via AP2.
-    Report SETTLEMENT_CONFIRMED with settlement_id on success.
+    Check governor_results and sentinel_results for POLICY_BLOCKED or COMPLIANCE_BLOCKED first.
+    If either is present: output PAYMENT_ABORTED immediately.
+    Otherwise: call evaluate_payment_policy, then generate an IntentMandate and settle via AP2.
+    Report SETTLEMENT_CONFIRMED, PAYMENT_PENDING_REVIEW, or PAYMENT_ABORTED.
   tools:
+    - name: evaluate_payment_policy
+      description: "Evaluate a payment mandate against approval thresholds and daily spend limits."
+      type: McpServer
+      mcpServer:
+        toolServer: aura-tool-server
+        toolNames:
+          - evaluate_payment_policy
     - name: generate_intent_mandate
       description: "Generate a W3C Verifiable Credential Intent Mandate for AP2 payment."
       type: McpServer
@@ -173,6 +186,11 @@ spec:
               value: europe-north1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
+            - name: AURA_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aura-admin-token
+                  key: token
           resources:
             requests:
               cpu: 250m
@@ -198,9 +216,11 @@ spec:
     name: gemini-2-flash-vertexai
   systemPrompt: |
     You are Architect, the root orchestrator of Project Aura.
-    Coordinate the Scout → Sentinel → Closer pipeline.
-    Always prioritise compliance. Report outcome clearly to the user.
+    Coordinate the Governor → Scout → Sentinel → Closer pipeline.
+    Always prioritise compliance and governance. Report outcome clearly to the user.
   agentTeam:
+    - name: governor
+      namespace: aura
     - name: scout
       namespace: aura
     - name: sentinel
@@ -221,6 +241,11 @@ spec:
               value: europe-north1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
+            - name: AURA_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aura-admin-token
+                  key: token
           resources:
             requests:
               cpu: 500m
