@@ -68,6 +68,14 @@ class TestGenerateIntentMandate:
         with pytest.raises(ValueError, match="max_amount"):
             generate_intent_mandate("v-001", "TechCorp Nordic", 5001.00, compliance_hash="a" * 64)
 
+    def test_mandate_missing_compliance_hash_raises(self):
+        with pytest.raises(ValueError, match="compliance_hash"):
+            generate_intent_mandate("v-001", "TechCorp Nordic", 1200.00, compliance_hash="")
+
+    def test_mandate_invalid_compliance_hash_raises(self):
+        with pytest.raises(ValueError, match="format"):
+            generate_intent_mandate("v-001", "TechCorp Nordic", 1200.00, compliance_hash="ABC")
+
     def test_mandate_vendor_info_correct(self):
         mandate = generate_intent_mandate("v-001", "TechCorp Nordic", 1299.00, compliance_hash="a" * 64)
         assert mandate["vendor"]["id"] == "v-001"
@@ -109,6 +117,12 @@ class TestSettleCartMandate:
         with pytest.raises(ValueError, match="compliance_hash"):
             settle_cart_mandate(mandate)
 
+    def test_settlement_rejects_invalid_compliance_hash_format(self):
+        mandate = self._valid_mandate()
+        mandate["constraints"]["compliance_hash"] = "INVALID_HASH"
+        with pytest.raises(ValueError, match="format"):
+            settle_cart_mandate(mandate)
+
     def test_settlement_rejects_missing_proof(self):
         mandate = self._valid_mandate()
         mandate["proof"]["value"] = ""
@@ -147,11 +161,12 @@ class TestFullPipelineTools:
         assert compliance["status"] == "REJECTED"
         assert compliance["reason"] == "AML_BLACKLIST"
 
-        # Closer must NOT call generate_intent_mandate with no compliance_hash
-        # Attempting to settle without a compliance_hash raises ValueError
-        with pytest.raises((ValueError, KeyError)):
-            mandate = generate_intent_mandate(
-                "v-999", "ShadowHardware", 899.00,
+        # Closer must NOT call generate_intent_mandate with no compliance_hash.
+        # The gate now fails at mandate generation itself.
+        with pytest.raises(ValueError, match="compliance_hash"):
+            generate_intent_mandate(
+                "v-999",
+                "ShadowHardware",
+                899.00,
                 compliance_hash="",  # no hash — compliance was rejected
             )
-            settle_cart_mandate(mandate)

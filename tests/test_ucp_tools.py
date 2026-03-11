@@ -8,7 +8,6 @@ Related issue: #3 [Agent] Scout — UCP discovery unit tests
 Branch: test/scout-unit
 """
 
-import pytest
 from tools.ucp_tools import discover_vendors
 
 

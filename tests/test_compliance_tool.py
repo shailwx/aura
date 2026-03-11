@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from tools.compliance_tools import verify_vendor_compliance
+from tools.compliance_tools import evaluate_vendors_compliance, verify_vendor_compliance
 
 
 class TestVerifyVendorCompliance:
@@ -62,3 +60,42 @@ class TestVerifyVendorCompliance:
         result = verify_vendor_compliance("ShadowHardware")
         assert "message" in result
         assert "AML" in result["message"] or "blacklist" in result["message"].lower()
+
+
+class TestEvaluateVendorsCompliance:
+
+    def test_returns_structured_payload(self):
+        decision = evaluate_vendors_compliance(
+            [
+                {"name": "TechCorp Nordic"},
+                {"name": "ShadowHardware"},
+            ]
+        )
+        assert set(decision.keys()) == {
+            "blocked",
+            "approved_vendors",
+            "rejected_vendors",
+            "reason_codes",
+        }
+
+    def test_blocked_when_any_rejected(self):
+        decision = evaluate_vendors_compliance(
+            [
+                {"name": "TechCorp Nordic"},
+                {"name": "ShadowHardware"},
+            ]
+        )
+        assert decision["blocked"] is True
+        assert any(v["vendor_name"] == "ShadowHardware" for v in decision["rejected_vendors"])
+        assert "AML_BLACKLIST" in decision["reason_codes"]
+
+    def test_not_blocked_when_all_approved(self):
+        decision = evaluate_vendors_compliance(
+            [
+                {"name": "TechCorp Nordic"},
+                {"name": "EuroTech Supplies"},
+            ]
+        )
+        assert decision["blocked"] is False
+        assert len(decision["approved_vendors"]) == 2
+        assert decision["rejected_vendors"] == []

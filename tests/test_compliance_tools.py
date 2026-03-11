@@ -9,7 +9,6 @@ Branch: test/sentinel-unit
 """
 
 import re
-import time
 import pytest
 from tools.compliance_tools import verify_vendor_compliance
 

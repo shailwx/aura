@@ -11,9 +11,13 @@ AP2 spec reference: https://agent-payments-protocol.dev (emerging standard)
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 import uuid
 from typing import Any
+
+
+_COMPLIANCE_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 def generate_intent_mandate(
@@ -42,6 +46,16 @@ def generate_intent_mandate(
     if amount > 5000.00:
         raise ValueError(
             f"Amount {amount} exceeds IntentMandate max_amount constraint of 5000.00"
+        )
+
+    if not compliance_hash:
+        raise ValueError(
+            "Mandate missing compliance_hash. Cannot generate mandate without Sentinel approval."
+        )
+
+    if not _COMPLIANCE_HASH_PATTERN.fullmatch(compliance_hash):
+        raise ValueError(
+            "Invalid compliance_hash format. Expected 64 lowercase hex characters."
         )
 
     mandate_id = str(uuid.uuid4())
@@ -96,6 +110,12 @@ def settle_cart_mandate(mandate: dict[str, Any]) -> dict[str, Any]:
     if not constraints.get("compliance_hash"):
         raise ValueError(
             "Mandate missing compliance_hash. Cannot settle without Sentinel approval."
+        )
+
+    compliance_hash = str(constraints.get("compliance_hash"))
+    if not _COMPLIANCE_HASH_PATTERN.fullmatch(compliance_hash):
+        raise ValueError(
+            "Invalid compliance_hash format. Cannot settle mandate."
         )
 
     proof = mandate.get("proof", {})

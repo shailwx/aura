@@ -16,6 +16,62 @@ from typing import Any
 _BLACKLISTED_VENDORS = frozenset({"ShadowHardware", "shadowhardware"})
 
 
+def evaluate_vendors_compliance(vendors: list[dict[str, Any]]) -> dict[str, Any]:
+    """Evaluate a full vendor list and return a structured compliance decision.
+
+    Args:
+        vendors: Vendor dicts containing at least a ``name`` field.
+
+    Returns:
+        Structured decision payload:
+          - blocked: bool
+          - approved_vendors: list[dict]
+          - rejected_vendors: list[dict]
+          - reason_codes: list[str]
+    """
+    approved_vendors: list[dict[str, Any]] = []
+    rejected_vendors: list[dict[str, Any]] = []
+
+    for vendor in vendors:
+        vendor_name = str(vendor.get("name", "")).strip()
+        if not vendor_name:
+            rejected_vendors.append(
+                {
+                    "vendor_name": "<unknown>",
+                    "reason": "INVALID_VENDOR_NAME",
+                    "message": "Vendor entry missing required 'name' field.",
+                }
+            )
+            continue
+
+        result = verify_vendor_compliance(vendor_name)
+        if result["status"] == "APPROVED":
+            approved_vendors.append(
+                {
+                    "vendor_name": result["vendor_name"],
+                    "compliance_hash": result["compliance_hash"],
+                }
+            )
+            continue
+
+        rejected_vendors.append(
+            {
+                "vendor_name": result["vendor_name"],
+                "reason": result.get("reason", "UNKNOWN"),
+                "message": result.get("message", "Vendor rejected by compliance."),
+            }
+        )
+
+    reason_codes = sorted({entry["reason"] for entry in rejected_vendors if "reason" in entry})
+
+    return {
+        "blocked": len(rejected_vendors) > 0,
+        "approved_vendors": approved_vendors,
+        "rejected_vendors": rejected_vendors,
+        "reason_codes": reason_codes,
+    }
+
+
 def verify_vendor_compliance(vendor_name: str) -> dict[str, Any]:
     """Verify a vendor against the Core Banking System (BMS) KYC/AML database.
 
