@@ -54,6 +54,7 @@ class VendorEndpoint:
     ucp_endpoint: str
     country: str
     pricing_tiers: list[PricingTier] = field(default_factory=list)
+    org_number: str | None = None  # 9-digit Norwegian Brønnøysund registry ID
 
 
 _MOCK_VENDOR_DB: list[VendorEndpoint] = [
@@ -71,6 +72,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1199.00, discount_pct=7.7),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=999.00,  discount_pct=23.1),
         ],
+        org_number="914325762",
     ),
     VendorEndpoint(
         id="v-002",
@@ -86,6 +88,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1249.00, discount_pct=7.4),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=1049.00, discount_pct=22.3),
         ],
+        org_number="123456789",
     ),
     VendorEndpoint(
         id="v-003",
@@ -101,6 +104,7 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
             PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1180.00, discount_pct=7.8),
             PricingTier(min_qty=50, max_qty=None, unit_price_usd=980.00,  discount_pct=23.4),
         ],
+        org_number="914778271",
     ),
     VendorEndpoint(
         id="v-999",
