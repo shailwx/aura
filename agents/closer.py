@@ -15,6 +15,7 @@ from tools.ap2_tools import generate_intent_mandate, settle_cart_mandate
 from tools.policy_tools import evaluate_payment_policy
 from tools.pricing_tools import calculate_bulk_price
 from tools.ssa_tools import generate_ssa_contract_summary
+>>>>>>> origin/main
 
 closer = LlmAgent(
     name="Closer",
@@ -71,6 +72,7 @@ If all checks are clear, proceed:
    - discount_applied = total_savings from calculate_bulk_price
 8. Review the generated mandate — confirm it has a valid proof signature.
 9. Call settle_cart_mandate(mandate) to submit to the AP2 gateway.
+<<<<<<< HEAD
 10. Get ssa_type from governor_results.ssa_type (default "SSA-K" if absent).
     Get ssa_compliant from sentinel_results approved_vendors[selected].ssa_compliance.compliant (default False).
     Pass ssa_type=ssa_type, ssa_compliant=ssa_compliant to generate_intent_mandate.
@@ -85,5 +87,16 @@ Always present the final outcome clearly:
 - PAYMENT_ABORTED with reason (hard block — no payment initiated)
 """,
     tools=[generate_intent_mandate, settle_cart_mandate, evaluate_payment_policy, calculate_bulk_price, generate_ssa_contract_summary],
-    output_key="closer_results",
+=======
+10. Report the settlement result including:
+    - settlement_id and confirmed amount
+    - Discount applied: savings_pct% saved ($total_savings USD)
+    - Any WARN-level policy notes
+
+Always present the final outcome clearly:
+- SETTLEMENT_CONFIRMED with settlement_id, amount, and discount summary
+- PAYMENT_PENDING_REVIEW with reason (human approval required before settlement)
+- PAYMENT_ABORTED with reason (hard block — no payment initiated)
+""",
+    tools=[generate_intent_mandate, settle_cart_mandate, evaluate_payment_policy, calculate_bulk_price],    output_key="closer_results",
 )

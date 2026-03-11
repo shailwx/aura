@@ -20,6 +20,7 @@
 | Document | Description |
 |----------|-------------|
 | [BUSINESS_GUIDE.md](BUSINESS_GUIDE.md) | What AURA does, key benefits, and ROI explainer for non-technical stakeholders |
+| [USE_CASES.md](USE_CASES.md) | 16 procurement scenarios — core demos, SSA contract types, and extended real-world flows |
 | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) | End-to-end demo walkthrough with talking points and sample outputs |
 | [DASHBOARD.md](DASHBOARD.md) | How to use the Streamlit monitoring dashboard |
 
@@ -45,10 +46,10 @@
 ```mermaid
 flowchart LR
     User(["👤 User"])
-    Architect["🏛️ Architect\nOrchestrator"]
-    Scout["🔭 Scout\nUCP Discovery"]
-    Sentinel["🛡️ Sentinel\nKYC/AML Gate"]
-    Closer["💳 Closer\nAP2 Settlement"]
+    Architect["🏛️ Architect<br/>Orchestrator"]
+    Scout["🔭 Scout<br/>UCP Discovery"]
+    Sentinel["🛡️ Sentinel<br/>KYC/AML Gate"]
+    Closer["💳 Closer<br/>AP2 Settlement"]
     Settlement(["✅ Settlement"])
     Blocked(["⛔ Blocked"])
 

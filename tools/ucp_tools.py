@@ -15,6 +15,35 @@ from typing import Any, Protocol
 
 import httpx
 
+from tools.reliability_tools import CircuitBreaker, CircuitOpenError, execute_with_retries
+
+
+
+@dataclass
+class PricingTier:
+    """A single volume pricing tier offered by a vendor.
+
+    Attributes:
+        min_qty: Minimum number of units for this tier to apply (inclusive).
+        max_qty: Maximum number of units for this tier (inclusive); None = no upper bound.
+        unit_price_usd: Per-unit price in USD at this tier.
+        discount_pct: Percentage discount off the base (Tier-1) price.
+    """
+
+    min_qty: int
+    max_qty: int | None
+    unit_price_usd: float
+    discount_pct: float
+
+
+# Platform-level rebate applied on top of any vendor tier.
+# These percentages are deducted from the vendor-tier unit price.
+PLATFORM_REBATE_TIERS: list[dict[str, Any]] = [
+    {"min_qty": 0,  "max_qty": 4,    "rebate_pct": 0.0},
+    {"min_qty": 5,  "max_qty": 19,   "rebate_pct": 1.0},
+    {"min_qty": 20, "max_qty": None,  "rebate_pct": 2.0},
+]
+
 
 
 @dataclass
@@ -137,13 +166,32 @@ class HttpUcpProvider:
     def __init__(self, discovery_url: str, timeout_seconds: float = 10.0) -> None:
         self.discovery_url = discovery_url
         self.timeout_seconds = timeout_seconds
+        self.retry_attempts = int(os.getenv("HTTP_RETRY_ATTEMPTS", "3"))
+        self.retry_backoff_seconds = float(os.getenv("HTTP_RETRY_BACKOFF_SECONDS", "0.2"))
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "3")),
+            reset_timeout_seconds=float(os.getenv("CIRCUIT_BREAKER_RESET_SECONDS", "30")),
+        )
 
     def discover_vendors(self, query: str) -> list[dict[str, Any]]:
-        try:
+        def _request() -> Any:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.get(self.discovery_url, params={"q": query})
                 response.raise_for_status()
-                payload = response.json()
+                return response.json()
+
+        try:
+            payload = execute_with_retries(
+                _request,
+                attempts=self.retry_attempts,
+                base_backoff_seconds=self.retry_backoff_seconds,
+                circuit_breaker=self._circuit_breaker,
+                retryable_exceptions=(httpx.HTTPError,),
+            )
+        except CircuitOpenError as exc:
+            raise RuntimeError(
+                "UCP provider circuit is open due to repeated failures. Try again later."
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 "UCP provider request failed. Verify UCP_DISCOVERY_URL and network connectivity."

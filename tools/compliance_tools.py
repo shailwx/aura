@@ -16,6 +16,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from tools.reliability_tools import CircuitBreaker, CircuitOpenError, execute_with_retries
+
 # AML blacklist — sourced from BMS compliance database
 _BLACKLISTED_VENDORS = frozenset({"ShadowHardware", "shadowhardware"})
 _COMPLIANCE_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -58,13 +60,19 @@ class BmsComplianceProvider:
         self.endpoint = endpoint
         self.api_token = api_token
         self.timeout_seconds = timeout_seconds
+        self.retry_attempts = int(os.getenv("HTTP_RETRY_ATTEMPTS", "3"))
+        self.retry_backoff_seconds = float(os.getenv("HTTP_RETRY_BACKOFF_SECONDS", "0.2"))
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "3")),
+            reset_timeout_seconds=float(os.getenv("CIRCUIT_BREAKER_RESET_SECONDS", "30")),
+        )
 
     def verify_vendor_compliance(self, vendor_name: str) -> dict[str, Any]:
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_token:
             headers["Authorization"] = f"Bearer {self.api_token}"
 
-        try:
+        def _request() -> Any:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.post(
                     self.endpoint,
@@ -72,7 +80,20 @@ class BmsComplianceProvider:
                     headers=headers,
                 )
                 response.raise_for_status()
-                payload = response.json()
+                return response.json()
+
+        try:
+            payload = execute_with_retries(
+                _request,
+                attempts=self.retry_attempts,
+                base_backoff_seconds=self.retry_backoff_seconds,
+                circuit_breaker=self._circuit_breaker,
+                retryable_exceptions=(httpx.HTTPError,),
+            )
+        except CircuitOpenError as exc:
+            raise RuntimeError(
+                "BMS compliance circuit is open due to repeated failures. Try again later."
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 "BMS compliance request failed. Verify BMS_COMPLIANCE_URL and credentials."
