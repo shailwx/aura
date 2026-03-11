@@ -9,8 +9,11 @@ exercise the Sentinel compliance path.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, asdict
-from typing import Any
+from typing import Any, Protocol
+
+import httpx
 
 
 @dataclass
@@ -69,6 +72,62 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
 ]
 
 
+class UcpProvider(Protocol):
+    def discover_vendors(self, query: str) -> list[dict[str, Any]]:
+        ...
+
+
+class MockUcpProvider:
+    def discover_vendors(self, query: str) -> list[dict[str, Any]]:
+        results = sorted(_MOCK_VENDOR_DB, key=lambda v: v.unit_price_usd)
+        return [asdict(v) for v in results]
+
+
+class HttpUcpProvider:
+    def __init__(self, discovery_url: str, timeout_seconds: float = 10.0) -> None:
+        self.discovery_url = discovery_url
+        self.timeout_seconds = timeout_seconds
+
+    def discover_vendors(self, query: str) -> list[dict[str, Any]]:
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                response = client.get(self.discovery_url, params={"q": query})
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(
+                "UCP provider request failed. Verify UCP_DISCOVERY_URL and network connectivity."
+            ) from exc
+
+        if isinstance(payload, list):
+            return payload
+
+        if isinstance(payload, dict) and isinstance(payload.get("vendors"), list):
+            return payload["vendors"]
+
+        raise RuntimeError(
+            "UCP provider returned unsupported response schema. Expected list or {'vendors': [...]}"
+        )
+
+
+def _get_ucp_provider() -> UcpProvider:
+    mode = os.getenv("AURA_PROVIDER_MODE", "mock").strip().lower()
+    if mode == "mock":
+        return MockUcpProvider()
+
+    if mode == "real":
+        discovery_url = os.getenv("UCP_DISCOVERY_URL", "").strip()
+        if not discovery_url:
+            raise RuntimeError(
+                "AURA_PROVIDER_MODE=real requires UCP_DISCOVERY_URL to be set."
+            )
+        return HttpUcpProvider(discovery_url=discovery_url)
+
+    raise RuntimeError(
+        f"Unsupported AURA_PROVIDER_MODE='{mode}'. Expected 'mock' or 'real'."
+    )
+
+
 def discover_vendors(query: str) -> list[dict[str, Any]]:
     """Discover vendors via Universal Commerce Protocol (UCP).
 
@@ -82,6 +141,5 @@ def discover_vendors(query: str) -> list[dict[str, Any]]:
     Returns:
         List of vendor endpoint dicts with id, name, price, availability, etc.
     """
-    # In production: HTTP GET each /.well-known/ucp endpoint and parse manifest
-    results = sorted(_MOCK_VENDOR_DB, key=lambda v: v.unit_price_usd)
-    return [asdict(v) for v in results]
+    provider = _get_ucp_provider()
+    return provider.discover_vendors(query)
