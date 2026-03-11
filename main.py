@@ -25,6 +25,11 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 from agents.architect import architect
+from tools.intent_tools import (
+    build_clarification_message,
+    build_structured_procurement_prompt,
+    parse_procurement_intent,
+)
 
 load_dotenv()
 
@@ -90,9 +95,18 @@ async def run_procurement(request: RunRequest) -> RunResponse:
             app_name=APP_NAME, user_id=user_id, session_id=session_id
         )
 
+    parsed_intent = parse_procurement_intent(request.message)
+    if not parsed_intent.is_valid:
+        return RunResponse(
+            session_id=session_id,
+            response=build_clarification_message(parsed_intent.missing_fields),
+        )
+
+    normalized_prompt = build_structured_procurement_prompt(parsed_intent.intent)
+
     new_message = genai_types.Content(
         role="user",
-        parts=[genai_types.Part(text=request.message)],
+        parts=[genai_types.Part(text=normalized_prompt)],
     )
 
     # Collect all agent response chunks
@@ -130,9 +144,23 @@ async def run_procurement_stream(request: RunRequest) -> StreamingResponse:
             app_name=APP_NAME, user_id=user_id, session_id=session_id
         )
 
+    parsed_intent = parse_procurement_intent(request.message)
+    if not parsed_intent.is_valid:
+        clarification = build_clarification_message(parsed_intent.missing_fields)
+
+        async def clarification_generator() -> AsyncIterator[str]:
+            yield f"data: {clarification}\n\n"
+
+        return StreamingResponse(
+            clarification_generator(),
+            media_type="text/event-stream",
+        )
+
+    normalized_prompt = build_structured_procurement_prompt(parsed_intent.intent)
+
     new_message = genai_types.Content(
         role="user",
-        parts=[genai_types.Part(text=request.message)],
+        parts=[genai_types.Part(text=normalized_prompt)],
     )
 
     async def event_generator() -> AsyncIterator[str]:
