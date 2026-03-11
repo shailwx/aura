@@ -134,6 +134,21 @@ SESSION_TTL_SECONDS=0
 
 Use Redis mode for multi-instance or restart-resilient deployments.
 
+### Reliability Controls (Real Provider Mode)
+
+In `AURA_PROVIDER_MODE=real`, Aura applies retries, exponential backoff,
+and a circuit breaker to UCP/BMS/AP2 HTTP calls.
+
+```bash
+HTTP_RETRY_ATTEMPTS=3
+HTTP_RETRY_BACKOFF_SECONDS=0.2
+CIRCUIT_BREAKER_FAILURE_THRESHOLD=3
+CIRCUIT_BREAKER_RESET_SECONDS=30
+```
+
+AP2 settlement requests also include a deterministic `Idempotency-Key`
+derived from mandate data to reduce duplicate settlement risk on retries.
+
 ### Streamlit Dashboard
 
 ```bash
