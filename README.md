@@ -20,29 +20,33 @@ Aura automates the full B2B procurement lifecycle — from vendor discovery to p
 
 ## The Agent Squad
 
-| Agent | Role | Protocol |
-| :--- | :--- | :--- |
-| **Architect** | Root orchestrator — parses intent, manages pipeline | Google ADK `LlmAgent` |
-| **Scout** | Discovers vendors via Universal Commerce Protocol | UCP `/.well-known/ucp` |
-| **Sentinel** | KYC/AML compliance gate via Core Banking (BMS) | BMS Compliance API |
-| **Closer** | Generates Intent Mandate and settles via AP2 | AP2 `IntentMandate` + ECDSA-P256 |
+| Agent | Title | Responsibility | Protocol |
+| :--- | :--- | :--- | :--- |
+| **Architect** | 🏛️ Pipeline Commander | Parses user intent and orchestrates the full agent pipeline end-to-end | Google ADK `SequentialAgent` |
+| **Governor** | ⚖️ Policy Gatekeeper | Evaluates the procurement request against org spending rules *before* any vendor is contacted | Internal Policy Engine |
+| **Scout** | 🔭 Vendor Pathfinder | Queries `/.well-known/ucp` endpoints to discover vendors, fetch pricing tiers, and rank candidates | UCP `/.well-known/ucp` |
+| **Sentinel** | 🛡️ Compliance Guardian | Screens every shortlisted vendor against AML blacklists and KYC rules via the Core Banking System | BMS Compliance API |
+| **Closer** | 💳 Deal Executor | Signs a W3C Verifiable Credential Intent Mandate and settles payment through the AP2 gateway | AP2 `IntentMandate` + ECDSA-P256 |
 
 ```mermaid
 flowchart LR
     User(["👤 User"])
-    Architect["🏛️ Architect<br/>Orchestrator"]
-    Scout["🔭 Scout<br/>UCP Discovery"]
-    Sentinel["🛡️ Sentinel<br/>KYC/AML Gate"]
-    Closer["💳 Closer<br/>AP2 Settlement"]
-    Settlement(["✅ Settlement"])
+    Architect["🏛️ Architect<br/><i>Pipeline Commander</i>"]
+    Governor["⚖️ Governor<br/><i>Policy Gatekeeper</i>"]
+    Scout["🔭 Scout<br/><i>Vendor Pathfinder</i>"]
+    Sentinel["🛡️ Sentinel<br/><i>Compliance Guardian</i>"]
+    Closer["💳 Closer<br/><i>Deal Executor</i>"]
+    Settlement(["✅ Settled"])
     Blocked(["⛔ Blocked"])
 
-    User -->|procurement request| Architect
-    Architect -->|delegate| Scout
-    Scout -->|vendor list| Sentinel
-    Sentinel -->|APPROVED| Closer
-    Sentinel -->|COMPLIANCE_BLOCKED| Blocked
-    Closer --> Settlement
+    User -->|"procurement request"| Architect
+    Architect -->|"orchestrates"| Governor
+    Governor -->|"policy: ALLOW"| Scout
+    Governor -->|"policy: BLOCK"| Blocked
+    Scout -->|"ranked vendor list"| Sentinel
+    Sentinel -->|"KYC: APPROVED"| Closer
+    Sentinel -->|"KYC: BLOCKED"| Blocked
+    Closer -->|"AP2 mandate settled"| Settlement
 ```
 
 ---

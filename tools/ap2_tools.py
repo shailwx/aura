@@ -247,11 +247,8 @@ def generate_intent_mandate(
     compliance_hash: str = "",
     quantity: int = 1,
     discount_applied: float = 0.0,
-<<<<<<< HEAD
     ssa_type: str = "",
     ssa_compliant: bool = False,
-=======
->>>>>>> origin/main
 ) -> dict[str, Any]:
     """Generate an AP2 Intent Mandate — a W3C Verifiable Credential authorising payment.
 
@@ -298,12 +295,9 @@ def generate_intent_mandate(
     # Embed bulk-purchase audit fields for payment auditability.
     mandate["constraints"]["quantity"] = quantity
     mandate["constraints"]["discount_applied"] = discount_applied
-<<<<<<< HEAD
     if ssa_type:
         mandate["constraints"]["ssa_type"] = ssa_type
         mandate["constraints"]["ssa_compliant"] = ssa_compliant
-=======
->>>>>>> origin/main
     return mandate
 
 

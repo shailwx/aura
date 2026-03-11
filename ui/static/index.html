@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Portal</title>
+  <link rel="stylesheet" href="/portal/css/portal.css" />
+</head>
+<body>
+  <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">◎</span>
+      <span class="logo-text">Aura</span>
+      <span class="logo-sub">Commerce Portal</span>
+    </div>
+
+    <div class="role-selector-wrap">
+      <label class="role-label">VIEWING AS</label>
+      <select id="roleSelect" class="role-select">
+        <option value="procurement">Procurement Officer</option>
+        <option value="finance">Finance Approver</option>
+        <option value="compliance">Compliance Officer</option>
+        <option value="itmanager">IT Manager</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- Populated by JS based on role -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="tech-stack">
+        <div class="tech-item">
+          <span class="tech-dot dot-green"></span>
+          <span>Google ADK</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-dot dot-teal"></span>
+          <span>Gemini 2.0 Flash</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-dot dot-blue"></span>
+          <span>AP2 · UCP · BMS</span>
+        </div>
+      </div>
+      <div class="sidebar-branding">Dashboard powered by <strong>Aura</strong></div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────────────────── -->
+  <div class="main-wrap">
+    <!-- Top header bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="breadcrumb" id="breadcrumb">Procurement Officer</span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-view" id="breadcrumbView">Request History</span>
+      </div>
+      <div class="topbar-right">
+        <span class="role-badge" id="roleBadge">Procurement Officer</span>
+        <button class="btn-icon refresh-btn" id="refreshBtn" title="Refresh">↻</button>
+      </div>
+    </header>
+
+    <!-- Search / filter bar -->
+    <div class="toolbar" id="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search…" />
+      </div>
+      <div class="toolbar-actions" id="toolbarActions">
+        <!-- view-specific actions injected here -->
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <main class="content" id="view">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading…</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Submit Request Modal ──────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="submitModal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>New Procurement Request</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Describe what you need to procure</label>
+        <textarea id="submitMsg" class="form-textarea" rows="4"
+          placeholder="e.g. Buy 3 Laptop Pro 15 units from the best available vendor"></textarea>
+        <div class="form-hint">Aura will discover vendors, verify compliance, and settle payment automatically.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="modalCancelBtn">Cancel</button>
+        <button class="btn-primary" id="modalSubmitBtn">Submit Request</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/portal/js/portal.js"></script>
+</body>
+</html>
