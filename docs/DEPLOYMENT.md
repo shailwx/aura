@@ -65,10 +65,10 @@ Expected output:
 
 ```
 NAME         READY   MODEL                  AGE
-architect    True    gemini-2.0-flash       30s
-scout        True    gemini-2.0-flash       30s
-sentinel     True    gemini-2.0-flash       30s
-closer       True    gemini-2.0-flash       30s
+architect    True    gemini-3.1-flash       30s
+scout        True    gemini-3.1-flash       30s
+sentinel     True    gemini-3.1-flash       30s
+closer       True    gemini-3.1-flash       30s
 ```
 
 ---

@@ -1,7 +1,7 @@
 # 📄 PRD: Project "Aura" - Autonomous Reliable Agentic Commerce
 
 **Version:** 2026.1.0
-**Stack:** Google ADK (Python), UCP, AP2, Kagent (Kubernetes), Gemini 2.0 Flash
+**Stack:** Google ADK (Python), UCP, AP2, Kagent (Kubernetes), Gemini 3.1 Flash
 **Status:** Hackathon Prototype (Google AI Agent Labs Oslo 2026 — Team 6)
 
 ---
@@ -82,7 +82,7 @@ Aura operates as a **MAS (Multi-Agent System)** using the Google ADK orchestrati
 
 - **Runtime:** Python 3.12 (FastAPI for A2A comms, port 8080)
 - **Orchestration:** `google-adk` with `SequentialAgent` for the main flow
-- **Model:** Vertex AI Gemini 2.0 Flash (`gemini-2.0-flash`)
+- **Model:** Vertex AI Gemini 3.1 Flash (`gemini-3.1-flash`)
 - **GCP Project:** `ai-agent-labs-oslo-26-team-6`
 - **Region:** `europe-north1`
 - **Deployment:** `kagent` YAML with `ModelConfig` targeting Vertex AI

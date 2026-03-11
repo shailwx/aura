@@ -24,7 +24,7 @@
 | Layer | Technology | Version |
 | :--- | :--- | :--- |
 | Agent framework | `google-adk` | ≥ 1.0.0 |
-| LLM | Gemini 2.0 Flash via Vertex AI | — |
+| LLM | Gemini 3.1 Flash via Vertex AI | — |
 | API server | FastAPI + Uvicorn | ≥ 0.115.0 / 0.34.0 |
 | Dashboard | Streamlit | ≥ 1.40.0 |
 | Runtime | Python | 3.12 |
@@ -121,7 +121,7 @@ architect  (LlmAgent — root)
 ```python
 architect = LlmAgent(
     name="Architect",
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash",
     instruction="...",   # system prompt — intent parsing + outcome summary
     # No tools — delegates entirely to AuraPipeline sub-agent
 )
@@ -317,7 +317,7 @@ from tools.my_tools import my_tool
 
 my_agent = LlmAgent(
     name="MyAgent",
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash",
     description="...",
     instruction="...",
     tools=[my_tool],
@@ -350,7 +350,7 @@ scout = LlmAgent(model="gemini-1.5-pro", ...)
 
 # Or set via env var and read at init time
 import os
-MODEL = os.getenv("AURA_MODEL", "gemini-2.0-flash")
+MODEL = os.getenv("AURA_MODEL", "gemini-3.1-flash")
 scout = LlmAgent(model=MODEL, ...)
 ```
 

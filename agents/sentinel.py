@@ -17,7 +17,7 @@ from tools.ssa_tools import validate_ssa_compliance
 
 sentinel = LlmAgent(
     name="Sentinel",
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash",
     description=(
         "Executes KYC/AML compliance checks and vendor policy evaluation. "
         "Blocks any vendor flagged in the AML blacklist or blocked by policy rules."

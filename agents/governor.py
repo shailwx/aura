@@ -14,7 +14,7 @@ from tools.policy_tools import evaluate_procurement_policy
 
 governor = LlmAgent(
     name="Governor",
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash",
     description=(
         "Pre-flight policy gate. Evaluates every procurement request against "
         "the organisation's procurement rules before any vendor discovery begins."

@@ -18,7 +18,7 @@ from tools.ssa_tools import generate_ssa_contract_summary
 
 closer = LlmAgent(
     name="Closer",
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash",
     description=(
         "Handles secure payment via Agent Payments Protocol v2 (AP2). "
         "Generates an Intent Mandate and settles the transaction when compliance "

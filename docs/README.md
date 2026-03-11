@@ -9,7 +9,7 @@
 | Property | Value |
 |----------|-------|
 | **Project** | AURA — Autonomous B2B Procurement Agent |
-| **Framework** | Google ADK + Gemini 2.0 Flash |
+| **Framework** | Google ADK + Gemini 3.1 Flash |
 | **Updated** | 2026-03-11 |
 | **Status** | Production-ready |
 

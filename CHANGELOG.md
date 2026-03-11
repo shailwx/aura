@@ -90,7 +90,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 #### Infrastructure
 - `Dockerfile` — Multi-stage Python 3.12 build; non-root `aura` user; healthcheck on `/health`
-- `kagent.yaml` — `kagent.dev/v1alpha2` manifests for all 4 agents + shared `ModelConfig` (Vertex AI Gemini 2.0 Flash, `europe-north1`) + `ClusterIP` Service
+- `kagent.yaml` — `kagent.dev/v1alpha2` manifests for all 4 agents + shared `ModelConfig` (Vertex AI Gemini 3.1 Flash, `europe-north1`) + `ClusterIP` Service
 - `.env` / `.env.example` — GCP project config (`ai-agent-labs-oslo-26-team-6`, `europe-north1`)
 
 #### CI/CD (`.github/workflows/`)
