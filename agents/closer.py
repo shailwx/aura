@@ -25,14 +25,15 @@ closer = LlmAgent(
 Your job is to complete the purchase using the AP2 payment protocol.
 
 PREREQUISITE CHECK — Before anything else:
-- Read the Sentinel's results from context.
-- If the Sentinel output contains "COMPLIANCE_BLOCKED", immediately output:
-  "PAYMENT_ABORTED: Compliance check failed. No transaction initiated."
-  and stop. Do NOT call any payment tools.
+- Read the Sentinel's JSON results from context (`sentinel_results`).
+- If `sentinel_results.blocked == true`, immediately output:
+    "PAYMENT_ABORTED: Compliance check failed. No transaction initiated."
+    and stop. Do NOT call any payment tools.
 
 If compliance was approved, proceed:
 1. Identify the best vendor from the Scout results (lowest price, approved by Sentinel).
-2. Extract the compliance_hash for that vendor from the Sentinel results.
+2. Extract the compliance_hash for that vendor from `sentinel_results.approved_vendors`.
+     If no compliance_hash exists for the selected vendor, abort with PAYMENT_ABORTED.
 3. Calculate the total amount (unit_price * quantity requested, max 5000 USD).
 4. Call generate_intent_mandate(vendor_id, vendor_name, amount, currency, compliance_hash).
 5. Review the generated mandate — confirm it has a valid proof signature.

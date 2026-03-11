@@ -139,9 +139,8 @@ class TestSettleCartMandate:
         assert len(result["message"]) > 0
 
     def test_missing_compliance_hash_raises(self):
-        bad_mandate = generate_intent_mandate("v-001", "TechCorp Nordic", 1299.00, "USD", "")
         with pytest.raises(ValueError, match="compliance_hash"):
-            settle_cart_mandate(bad_mandate)
+            generate_intent_mandate("v-001", "TechCorp Nordic", 1299.00, "USD", "")
 
     def test_wrong_mandate_type_raises(self, valid_mandate):
         bad = dict(valid_mandate)
