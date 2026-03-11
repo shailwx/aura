@@ -22,7 +22,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 from agents.architect import architect
@@ -32,6 +31,7 @@ from tools.intent_tools import (
     parse_procurement_intent,
 )
 from tools.auth_tools import AuthIdentity, require_procurement_identity
+from tools.session_tools import build_session_service
 
 load_dotenv()
 
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # ── ADK wiring ────────────────────────────────────────────────────────────────
 
 APP_NAME = os.getenv("APP_NAME", "aura")
-_session_service = InMemorySessionService()
+_session_service = build_session_service()
 
 _runner = Runner(
     app_name=APP_NAME,

@@ -117,6 +117,23 @@ curl -X POST http://localhost:8080/run \
   -d '{"message": "Buy 3 Laptop Pro 15 units"}'
 ```
 
+### Session Backend (In-Memory or Redis)
+
+Aura uses `SESSION_BACKEND` to choose session persistence:
+
+```bash
+# default dev mode
+SESSION_BACKEND=inmemory
+
+# durable mode
+SESSION_BACKEND=redis
+REDIS_URL=redis://localhost:6379/0
+REDIS_SESSION_KEY_PREFIX=aura:sessions
+SESSION_TTL_SECONDS=0
+```
+
+Use Redis mode for multi-instance or restart-resilient deployments.
+
 ### Streamlit Dashboard
 
 ```bash
