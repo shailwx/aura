@@ -92,6 +92,31 @@ curl -X POST http://localhost:8080/run \
 
 See [API Reference](docs/API_REFERENCE.md) for full endpoint documentation.
 
+### API Authentication (Optional)
+
+Aura can run with JWT auth enabled for `/run` and `/run/stream`.
+
+```bash
+# .env
+AUTH_ENABLED=true
+AUTH_JWT_SECRET=replace-with-strong-secret
+AUTH_JWT_ALGORITHM=HS256
+AUTH_ALLOWED_ROLES=procurement_runner,admin
+```
+
+When enabled, call endpoints with a bearer token containing at least:
+- `sub` (caller identity)
+- `role` (must be in `AUTH_ALLOWED_ROLES`)
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8080/run \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Buy 3 Laptop Pro 15 units"}'
+```
+
 ### Streamlit Dashboard
 
 ```bash
