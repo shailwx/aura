@@ -11,15 +11,15 @@ metadata:
   name: aura
 
 ---
-# ── Shared ModelConfig — Vertex AI Gemini 3.1 Flash ───────────────────────────
+# ── Shared ModelConfig — Vertex AI Gemini 2.5 Flash ───────────────────────────
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
-  name: gemini-3-1-flash-vertexai
+  name: gemini-2-5-flash-vertexai
   namespace: aura
 spec:
   provider: VertexAI
-  modelID: gemini-3.1-flash
+  modelID: gemini-2.5-flash
   project: ai-agent-labs-oslo-26-team-6
   location: europe-north1
 
@@ -37,7 +37,7 @@ metadata:
 spec:
   description: "Discovers vendors via Universal Commerce Protocol (UCP)."
   modelConfig:
-    name: gemini-3-1-flash-vertexai
+    name: gemini-2-5-flash-vertexai
   systemPrompt: |
     You are the Scout agent in the Aura procurement system.
     Discover vendors for the procurement request using the discover_vendors tool.
@@ -92,7 +92,7 @@ metadata:
 spec:
   description: "Executes KYC/AML compliance checks via Core Banking System (BMS)."
   modelConfig:
-    name: gemini-3-1-flash-vertexai
+    name: gemini-2-5-flash-vertexai
   systemPrompt: |
     You are the Sentinel agent in the Aura procurement system.
     Run EVERY vendor through the compliance database via verify_vendor_compliance.
@@ -143,7 +143,7 @@ metadata:
 spec:
   description: "Handles AP2 payment settlement with payment policy evaluation and Intent Mandate generation."
   modelConfig:
-    name: gemini-3-1-flash-vertexai
+    name: gemini-2-5-flash-vertexai
   systemPrompt: |
     You are the Closer agent in the Aura procurement system.
     Check governor_results and sentinel_results for POLICY_BLOCKED or COMPLIANCE_BLOCKED first.
@@ -213,7 +213,7 @@ metadata:
 spec:
   description: "Root orchestrator of the Aura autonomous procurement pipeline."
   modelConfig:
-    name: gemini-3-1-flash-vertexai
+    name: gemini-2-5-flash-vertexai
   systemPrompt: |
     You are Architect, the root orchestrator of Project Aura.
     Coordinate the Governor → Scout → Sentinel → Closer pipeline.

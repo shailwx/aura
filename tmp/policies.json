@@ -1,0 +1,98 @@
+[
+  {
+    "id": "rule-spending-limit",
+    "name": "Transaction Spending Limit",
+    "rule_type": "SPENDING_LIMIT",
+    "enabled": true,
+    "severity": "BLOCK",
+    "parameters": {
+      "max_transaction_usd": 5000,
+      "max_daily_usd": 20000
+    },
+    "description": "Block single transactions above $5,000 and daily spend above $20,000.",
+    "created_at": 1773241411.4902894
+  },
+  {
+    "id": "rule-geo-restriction",
+    "name": "Geographic Restriction",
+    "rule_type": "GEO_RESTRICTION",
+    "enabled": true,
+    "severity": "BLOCK",
+    "parameters": {
+      "blocked_country_codes": [
+        "IR",
+        "KP",
+        "RU",
+        "SY"
+      ]
+    },
+    "description": "Block vendors headquartered in sanctioned countries.",
+    "created_at": 1773241411.4902894
+  },
+  {
+    "id": "rule-category-allowlist",
+    "name": "Category Allowlist",
+    "rule_type": "CATEGORY_ALLOWLIST",
+    "enabled": true,
+    "severity": "BLOCK",
+    "parameters": {
+      "allowed_categories": [
+        "hardware",
+        "electronics",
+        "computer_components",
+        "office_supplies",
+        "saas",
+        "cloud_infrastructure"
+      ]
+    },
+    "description": "Only allow procurement in approved product categories.",
+    "created_at": 1773241411.4902894
+  },
+  {
+    "id": "rule-approval-threshold",
+    "name": "Approval Threshold",
+    "rule_type": "APPROVAL_THRESHOLD",
+    "enabled": true,
+    "severity": "REVIEW",
+    "parameters": {
+      "auto_approve_below_usd": 1000,
+      "review_above_usd": 1000,
+      "block_above_usd": 5000
+    },
+    "description": "Auto-approve under $1k; route to review queue $1k\u2013$5k; block above $5k.",
+    "created_at": 1773241411.4902894
+  },
+  {
+    "id": "rule-certification-required",
+    "name": "Vendor Certification Requirements",
+    "rule_type": "CERTIFICATION_REQUIRED",
+    "enabled": true,
+    "severity": "WARN",
+    "parameters": {
+      "requirements": {
+        "hardware": [
+          "ISO9001"
+        ],
+        "electronics": [
+          "RoHS",
+          "CE"
+        ]
+      }
+    },
+    "description": "Warn when a vendor lacks required certifications for the product category.",
+    "created_at": 1773241411.4902894
+  },
+  {
+    "id": "rule-rate-limit",
+    "name": "Request Rate Limit",
+    "rule_type": "RATE_LIMIT",
+    "enabled": true,
+    "severity": "BLOCK",
+    "parameters": {
+      "max_requests_per_hour": 5,
+      "max_requests_per_day": 20
+    },
+    "description": "Block users who exceed the hourly or daily request rate.",
+    "created_at": 1773241411.4902894
+  }
+]

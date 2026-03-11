@@ -363,7 +363,7 @@ with left:
     st.markdown("""
     <div style='font-size:0.85rem; color:#8b949e; line-height:1.8;'>
     🤖 <b>Google ADK</b> — Agent orchestration<br>
-    ✨ <b>Gemini 3.1 Flash</b> — LLM via Vertex AI<br>
+    ✨ <b>Gemini 2.5 Flash</b> — LLM via Vertex AI<br>
     🌐 <b>UCP</b> — Vendor discovery protocol<br>
     🔐 <b>AP2</b> — Agent payments protocol<br>
     🏦 <b>BMS</b> — Core banking compliance<br>

@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Aura — Autonomous Reliable Agentic Commerce",
-    description="Multi-agent B2B procurement system powered by Google ADK and Gemini 3.1 Flash.",
+    description="Multi-agent B2B procurement system powered by Google ADK and Gemini 2.5 Flash.",
     version="2026.1.0",
     lifespan=lifespan,
 )

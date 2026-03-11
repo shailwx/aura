@@ -24,7 +24,7 @@ _pipeline = SequentialAgent(
 
 architect = LlmAgent(
     name="Architect",
-    model="gemini-3.1-flash",
+    model="gemini-2.5-flash",
     description=(
         "Root orchestrator of the Aura autonomous procurement system. "
         "Parses enterprise procurement intent and coordinates the four-stage multi-agent pipeline."

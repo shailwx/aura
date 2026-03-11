@@ -15,7 +15,7 @@ from tools.pricing_tools import calculate_bulk_price, get_vendor_pricing_tiers
 
 scout = LlmAgent(
     name="Scout",
-    model="gemini-3.1-flash",
+    model="gemini-2.5-flash",
     description=(
         "Discovers vendors via the Universal Commerce Protocol (UCP). "
         "Given a procurement query, finds all available vendors, their pricing, "

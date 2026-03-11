@@ -130,7 +130,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) forma
 git commit -m "feat: add kagent.yaml Agent CRDs for all 4 agents
 
 - Architect, Scout, Sentinel, Closer as kagent.dev/v1alpha2 resources
-- Shared ModelConfig for Vertex AI Gemini 3.1 Flash
+- Shared ModelConfig for Vertex AI Gemini 2.5 Flash
 - Resource limits per DEPLOYMENT.md spec
 
 Closes #1"

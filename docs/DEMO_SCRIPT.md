@@ -46,7 +46,7 @@ User → Architect → Scout → Sentinel → Closer → Settlement
 | **Closer** | Generates a signed W3C Verifiable Credential (Intent Mandate) and submits to AP2 gateway — only if Sentinel approved |
 
 **Tech stack drop:**
-> "Built on Google ADK with Gemini 3.1 Flash via Vertex AI. Deployed as Kubernetes agents using Kagent v1alpha2 CRDs — so it's cloud-agnostic. Swap Gemini for Bedrock or Azure OpenAI by changing two lines of YAML."
+> "Built on Google ADK with Gemini 2.5 Flash via Vertex AI. Deployed as Kubernetes agents using Kagent v1alpha2 CRDs — so it's cloud-agnostic. Swap Gemini for Bedrock or Azure OpenAI by changing two lines of YAML."
 
 ---
 

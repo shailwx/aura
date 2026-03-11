@@ -13,7 +13,7 @@ graph TD
     User([👤 Enterprise User]) -->|Natural language<br/>procurement request| Architect
 
     subgraph Aura MAS ["🤖 Aura Multi-Agent System (Google ADK)"]
-        Architect["🏛️ Architect<br/><i>Pipeline Commander</i><br/>gemini-3.1-flash"]
+        Architect["🏛️ Architect<br/><i>Pipeline Commander</i><br/>gemini-2.5-flash"]
 
         subgraph Pipeline ["⚙️ AuraPipeline (SequentialAgent)"]
             Governor["⚖️ Governor<br/><i>Policy Gatekeeper</i><br/>LlmAgent"]
@@ -37,7 +37,7 @@ graph TD
     Architect -->|Summary + settlement_id| User
 
     subgraph GCP ["☁️ Google Cloud (europe-north1)"]
-        VertexAI["✨ Vertex AI<br/>Gemini 3.1 Flash"]
+        VertexAI["✨ Vertex AI<br/>Gemini 2.5 Flash"]
     end
 
     Architect -.->|LLM inference| VertexAI
@@ -129,7 +129,7 @@ No payment tools are ever called
 | Layer | Technology |
 | :--- | :--- |
 | Agent Framework | Google ADK (`google-adk`) |
-| LLM | Gemini 3.1 Flash via Vertex AI |
+| LLM | Gemini 2.5 Flash via Vertex AI |
 | API Server | FastAPI + Uvicorn |
 | Container | Docker (multi-stage, python:3.12-slim) |
 | Orchestration | Kagent `kagent.dev/v1alpha2` |
