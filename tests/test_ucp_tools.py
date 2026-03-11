@@ -41,11 +41,30 @@ class TestDiscoverVendors:
         required_fields = {
             "id", "name", "capability", "product",
             "unit_price_usd", "available_units", "ucp_endpoint", "country",
+            "pricing_tiers",
         }
         result = discover_vendors("laptops")
         for vendor in result:
             missing = required_fields - set(vendor.keys())
             assert not missing, f"Vendor {vendor.get('name')} missing fields: {missing}"
+
+    def test_pricing_tiers_is_non_empty_list(self):
+        result = discover_vendors("laptops")
+        for vendor in result:
+            assert isinstance(vendor["pricing_tiers"], list), (
+                f"Vendor {vendor['name']} pricing_tiers must be a list"
+            )
+            assert len(vendor["pricing_tiers"]) >= 1, (
+                f"Vendor {vendor['name']} must have at least one pricing tier"
+            )
+
+    def test_pricing_tier_fields_present(self):
+        result = discover_vendors("laptops")
+        for vendor in result:
+            for tier in vendor["pricing_tiers"]:
+                assert "min_qty" in tier
+                assert "unit_price_usd" in tier
+                assert "discount_pct" in tier
 
     def test_query_does_not_filter_results(self):
         """All 4 mock vendors are returned regardless of query string."""

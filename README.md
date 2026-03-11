@@ -30,10 +30,10 @@ Aura automates the full B2B procurement lifecycle — from vendor discovery to p
 ```mermaid
 flowchart LR
     User(["👤 User"])
-    Architect["🏛️ Architect\nOrchestrator"]
-    Scout["🔭 Scout\nUCP Discovery"]
-    Sentinel["🛡️ Sentinel\nKYC/AML Gate"]
-    Closer["💳 Closer\nAP2 Settlement"]
+    Architect["🏛️ Architect<br/>Orchestrator"]
+    Scout["🔭 Scout<br/>UCP Discovery"]
+    Sentinel["🛡️ Sentinel<br/>KYC/AML Gate"]
+    Closer["💳 Closer<br/>AP2 Settlement"]
     Settlement(["✅ Settlement"])
     Blocked(["⛔ Blocked"])
 

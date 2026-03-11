@@ -11,6 +11,9 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 > Changes on feature branches not yet merged to `main`.
 
+### Added
+- `docs/USE_CASES.md` — 16 procurement use cases: 3 core demo scenarios, 8 SSA contract type scenarios, and 5 extended real-world scenarios (volume discounts, mandate splits, geo-restrictions, payment thresholds, audit trails)
+
 ### In Progress
 - `test/architect-e2e` — E2E integration test for the full Scout → Sentinel → Closer pipeline (#2)
 - `feat/kagent-manifest` — Kubernetes Agent CRD review and `kagent apply --dry-run` validation (#1)

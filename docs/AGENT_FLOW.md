@@ -65,7 +65,7 @@ sequenceDiagram
     AP2-->>Closer: {settlement_id: "AP2-3X7K...", status: SETTLED}
     Closer-->>Architect: session_state["closer_results"] = SETTLEMENT_CONFIRMED
 
-    Architect-->>User: ✅ Purchased 3× Laptop Pro 15 from NordHardware AS\n   Amount: $3,840.00 USD\n   Settlement ID: AP2-3X7K...\n   Note: ShadowHardware excluded (AML blacklist)
+    Architect-->>User: ✅ Purchased 3× Laptop Pro 15 from NordHardware AS<br/>   Amount: $3,840.00 USD<br/>   Settlement ID: AP2-3X7K...<br/>   Note: ShadowHardware excluded (AML blacklist)
 ```
 
 ---
@@ -89,7 +89,7 @@ sequenceDiagram
 
     Note over Architect: ⛔ governor_results = POLICY_BLOCKED<br/>Pipeline halted — Scout never called
 
-    Architect-->>User: ⛔ Request blocked by policy engine\n   Violations:\n   • Category "military_hardware" not in allow-list\n   • Amount $12,000 exceeds transaction limit ($5,000)\n   No vendors were contacted. No payment was initiated.
+    Architect-->>User: ⛔ Request blocked by policy engine<br/>   Violations:<br/>   • Category "military_hardware" not in allow-list<br/>   • Amount $12,000 exceeds transaction limit ($5,000)<br/>   No vendors were contacted. No payment was initiated.
 ```
 
 ---
@@ -134,7 +134,7 @@ sequenceDiagram
     Note over Closer: Reads COMPLIANCE_BLOCKED from sentinel_results<br/>No payment tools called
     Closer-->>Architect: session_state["closer_results"] = PAYMENT_ABORTED
 
-    Architect-->>User: ⛔ Transaction blocked\n   Vendor: ShadowHardware\n   Reasons: AML_BLACKLIST + GEO_RESTRICTION (KP)\n   No payment was initiated.\n   Please contact the compliance team.
+    Architect-->>User: ⛔ Transaction blocked<br/>   Vendor: ShadowHardware<br/>   Reasons: AML_BLACKLIST + GEO_RESTRICTION (KP)<br/>   No payment was initiated.<br/>   Please contact the compliance team.
 ```
 
 ---
@@ -198,7 +198,7 @@ sequenceDiagram
     AP2-->>Closer: {settlement_id: "AP2-3X7K...", status: SETTLED}
     Closer-->>Architect: session_state["closer_results"] = SETTLEMENT_CONFIRMED
 
-    Architect-->>User: ✅ Purchased 3× Laptop Pro 15 from NordHardware AS\n   Amount: $3,840.00 USD\n   Settlement ID: AP2-3X7K...\n   Note: ShadowHardware was excluded (AML blacklist)
+    Architect-->>User: ✅ Purchased 3× Laptop Pro 15 from NordHardware AS<br/>   Amount: $3,840.00 USD<br/>   Settlement ID: AP2-3X7K...<br/>   Note: ShadowHardware was excluded (AML blacklist)
 ```
 
 ---
@@ -234,7 +234,7 @@ sequenceDiagram
     Note over Closer: Reads COMPLIANCE_BLOCKED from session state
     Closer-->>Architect: PAYMENT_ABORTED — no payment tools called
 
-    Architect-->>User: ⛔ Transaction blocked\n   Vendor: ShadowHardware\n   Reason: AML_BLACKLIST\n   No payment was initiated.\n   Please contact the compliance team.
+    Architect-->>User: ⛔ Transaction blocked<br/>   Vendor: ShadowHardware<br/>   Reason: AML_BLACKLIST<br/>   No payment was initiated.<br/>   Please contact the compliance team.
 ```
 
 ---
