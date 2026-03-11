@@ -248,7 +248,7 @@ aura/
 | Setting | Value |
 | :--- | :--- |
 | Project | `ai-agent-labs-oslo-26-team-6` |
-| Region | `europe-north1` |
+| Region | `us-central1` |
 | Model | `gemini-2.5-flash` via Vertex AI |
 
 ---

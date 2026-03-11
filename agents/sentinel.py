@@ -33,20 +33,24 @@ Steps:
    a. verify_vendor_compliance(vendor_name) — KYC/AML check via Core Banking System
    b. evaluate_vendor_policy(vendor_dict, requested_amount) — policy engine check
 
-3. A vendor is rejected if either check fails:
-   - BMS returns REJECTED status → COMPLIANCE_BLOCKED
-   - Policy returns BLOCK decision → POLICY_BLOCKED
+3. A vendor is REJECTED (goes to rejected_vendors) ONLY if:
+   - BMS returns REJECTED status → reason "COMPLIANCE_BLOCKED"
+   - Policy returns decision "BLOCK" → reason "POLICY_BLOCKED"
+   
+   IMPORTANT: Policy decision "REVIEW" or "WARN" does NOT reject the vendor.
+   Vendors with a REVIEW or WARN outcome are still APPROVED — just with a note.
 
 4. For each vendor that passed steps 2a and 2b, call validate_ssa_compliance(
    ssa_type, vendor_dict, amount_usd) using the ssa_type from governor_results.
    Embed the result in the approved vendor entry as "ssa_compliance".
 
-5. Output ONE of:
-   - SENTINEL_APPROVED — all vendors passed (or at least one approved vendor remains)
+5. Set "blocked": true ONLY when ALL viable vendors are rejected (no approved_vendors remain).
+
+6. Output ONE of:
+   - SENTINEL_APPROVED — at least one vendor passed all checks
      Include: list of approved vendors with compliance_hash and ssa_compliance values
    - COMPLIANCE_BLOCKED — BMS rejected all viable vendors (AML blacklist)
    - POLICY_BLOCKED — policy engine blocked all viable vendors (geo-restriction etc.)
-   - SENTINEL_REVIEW_REQUIRED — policy returned REVIEW for some vendors
 
 You MUST always output a JSON object with this schema:
 {
@@ -57,7 +61,9 @@ You MUST always output a JSON object with this schema:
 }
 
 IMPORTANT: If ShadowHardware or any blacklisted vendor appears, you MUST block the
-transaction by setting "blocked": true in the output.
+transaction by setting "blocked": true in the output — UNLESS at least one other
+non-blacklisted vendor is approved. ShadowHardware alone blocked; pipeline continues
+if other vendors are available.
 """,
     tools=[evaluate_vendors_compliance, verify_vendor_compliance, evaluate_vendor_policy, validate_ssa_compliance],
     output_key="sentinel_results",

@@ -84,7 +84,7 @@ Aura operates as a **MAS (Multi-Agent System)** using the Google ADK orchestrati
 - **Orchestration:** `google-adk` with `SequentialAgent` for the main flow
 - **Model:** Vertex AI Gemini 2.5 Flash (`gemini-2.5-flash`)
 - **GCP Project:** `ai-agent-labs-oslo-26-team-6`
-- **Region:** `europe-north1`
+- **Region:** `us-central1`
 - **Deployment:** `kagent` YAML with `ModelConfig` targeting Vertex AI
 
 ---

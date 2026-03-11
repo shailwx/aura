@@ -30,7 +30,7 @@
 | Runtime | Python | 3.12 |
 | Container | Docker multi-stage (`python:3.12-slim`) | — |
 | Kubernetes orchestration | Kagent `kagent.dev/v1alpha2` | latest |
-| Cloud | GCP `europe-north1` | — |
+| Cloud | GCP `us-central1` | — |
 | Auth | Pydantic + `python-jose` | ≥ 2.10.0 / 3.3.0 |
 | Testing | pytest + pytest-asyncio | ≥ 8.3.0 / 0.25.0 |
 
@@ -269,7 +269,7 @@ _runner = Runner(
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `GOOGLE_CLOUD_PROJECT` | `ai-agent-labs-oslo-26-team-6` | GCP project ID |
-| `GOOGLE_CLOUD_LOCATION` | `europe-north1` | Vertex AI region |
+| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Vertex AI region |
 | `GOOGLE_GENAI_USE_VERTEXAI` | `1` | Set to `1` to route LLM calls via Vertex AI |
 | `APP_NAME` | `aura` | ADK app name (scopes sessions) |
 | `PORT` | `8080` | FastAPI listen port |

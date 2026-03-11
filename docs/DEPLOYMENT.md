@@ -32,7 +32,7 @@ This installs the `kagent.dev/v1alpha2` CRDs into your cluster.
 ```bash
 kubectl create secret generic gcp-credentials \
   --from-literal=project=ai-agent-labs-oslo-26-team-6 \
-  --from-literal=location=europe-north1
+  --from-literal=location=us-central1
 ```
 
 ---

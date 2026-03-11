@@ -182,10 +182,12 @@ class TestApprovalThreshold:
         result = evaluate_payment_policy({"amount_usd": 6000}, user_id="u1")
         assert result["decision"] == "BLOCK"
 
-    def test_vendor_policy_review_for_mid_amount(self, monkeypatch):
+    def test_vendor_policy_ignores_amount(self, monkeypatch):
+        """evaluate_vendor_policy does NOT apply APPROVAL_THRESHOLD — that belongs in
+        evaluate_payment_policy (Closer layer), not in vendor vetting (Sentinel layer)."""
         _patch_store(monkeypatch, self._rule)
         result = evaluate_vendor_policy({"name": "V", "country": "NO"}, requested_amount=1500)
-        assert result["decision"] == "REVIEW"
+        assert result["decision"] == "ALLOW"
 
 
 # ── CERTIFICATION_REQUIRED ─────────────────────────────────────────────────────

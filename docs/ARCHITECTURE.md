@@ -36,7 +36,7 @@ graph TD
     Closer -->|Settlement result| Architect
     Architect -->|Summary + settlement_id| User
 
-    subgraph GCP ["☁️ Google Cloud (europe-north1)"]
+    subgraph GCP ["☁️ Google Cloud (us-central1)"]
         VertexAI["✨ Vertex AI<br/>Gemini 2.5 Flash"]
     end
 
@@ -133,5 +133,5 @@ No payment tools are ever called
 | API Server | FastAPI + Uvicorn |
 | Container | Docker (multi-stage, python:3.12-slim) |
 | Orchestration | Kagent `kagent.dev/v1alpha2` |
-| Cloud | GCP `europe-north1` |
+| Cloud | GCP `us-central1` |
 | Protocols | UCP (mocked), AP2 (mocked), BMS (mocked) |

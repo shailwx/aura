@@ -259,26 +259,8 @@ def evaluate_vendor_policy(vendor: dict[str, Any], requested_amount: float = 0.0
                     details={"capability": capability, "missing": missing},
                 ))
 
-        elif rule.rule_type == RuleType.APPROVAL_THRESHOLD and requested_amount > 0:
-            evaluated.append(rule.id)
-            block_above = rule.parameters.get("block_above_usd", float("inf"))
-            review_above = rule.parameters.get("review_above_usd", float("inf"))
-            if requested_amount > block_above:
-                violations.append(PolicyViolation(
-                    rule_id=rule.id,
-                    rule_name=rule.name,
-                    severity=Severity.BLOCK.value,
-                    reason=f"Amount ${requested_amount:,.2f} exceeds block threshold ${block_above:,.2f}",
-                    details={"amount": requested_amount, "block_above_usd": block_above},
-                ))
-            elif requested_amount > review_above:
-                violations.append(PolicyViolation(
-                    rule_id=rule.id,
-                    rule_name=rule.name,
-                    severity=rule.severity.value,
-                    reason=f"Amount ${requested_amount:,.2f} requires review (above ${review_above:,.2f})",
-                    details={"amount": requested_amount, "review_above_usd": review_above},
-                ))
+        # APPROVAL_THRESHOLD is intentionally NOT checked here — it belongs in
+        # evaluate_payment_policy (Closer layer), not in vendor vetting (Sentinel layer).
 
     return _make_decision(violations, evaluated, snapshot_hash)
 

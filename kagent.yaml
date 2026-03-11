@@ -21,7 +21,7 @@ spec:
   provider: VertexAI
   modelID: gemini-2.5-flash
   project: ai-agent-labs-oslo-26-team-6
-  location: europe-north1
+  location: us-central1
 
 ---
 # ── Scout Agent ───────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ spec:
             - name: GOOGLE_CLOUD_PROJECT
               value: ai-agent-labs-oslo-26-team-6
             - name: GOOGLE_CLOUD_LOCATION
-              value: europe-north1
+              value: us-central1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
             - name: AURA_ADMIN_TOKEN
@@ -118,7 +118,7 @@ spec:
             - name: GOOGLE_CLOUD_PROJECT
               value: ai-agent-labs-oslo-26-team-6
             - name: GOOGLE_CLOUD_LOCATION
-              value: europe-north1
+              value: us-central1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
           resources:
@@ -183,7 +183,7 @@ spec:
             - name: GOOGLE_CLOUD_PROJECT
               value: ai-agent-labs-oslo-26-team-6
             - name: GOOGLE_CLOUD_LOCATION
-              value: europe-north1
+              value: us-central1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
             - name: AURA_ADMIN_TOKEN
@@ -238,7 +238,7 @@ spec:
             - name: GOOGLE_CLOUD_PROJECT
               value: ai-agent-labs-oslo-26-team-6
             - name: GOOGLE_CLOUD_LOCATION
-              value: europe-north1
+              value: us-central1
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "1"
             - name: AURA_ADMIN_TOKEN

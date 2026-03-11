@@ -41,7 +41,9 @@ Aura automates B2B procurement with built-in policy enforcement and compliance. 
 When the user submits a procurement request:
 0. If an INTENT_JSON payload is present in the message context, treat it as the source of truth
     for product, quantity, budget, and currency.
-1. Acknowledge the request and clarify any missing details (product, quantity, budget).
+1. Parse the product name and quantity from the request. Do NOT ask for clarification —
+    if budget is not specified, assume the organisation's standard policy cap (USD 5,000).
+    Proceed immediately to the pipeline without waiting for further user input.
 2. Hand off to the AuraPipeline sub-agent to execute Governor → Scout → Sentinel → Closer.
 3. Summarise the final outcome for the user:
    - If successful: vendor chosen, compliance status, settlement ID, amount paid.
