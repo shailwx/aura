@@ -11,13 +11,186 @@ AP2 spec reference: https://agent-payments-protocol.dev (emerging standard)
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import time
 import uuid
-from typing import Any
+from typing import Any, Protocol
+
+import httpx
 
 
 _COMPLIANCE_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+class Ap2Provider(Protocol):
+    def generate_intent_mandate(
+        self,
+        vendor_id: str,
+        vendor_name: str,
+        amount: float,
+        currency: str,
+        compliance_hash: str,
+    ) -> dict[str, Any]:
+        ...
+
+    def settle_cart_mandate(self, mandate: dict[str, Any]) -> dict[str, Any]:
+        ...
+
+
+class MockAp2Provider:
+    def generate_intent_mandate(
+        self,
+        vendor_id: str,
+        vendor_name: str,
+        amount: float,
+        currency: str,
+        compliance_hash: str,
+    ) -> dict[str, Any]:
+        mandate_id = str(uuid.uuid4())
+        issued_at = int(time.time())
+
+        proof_input = f"{mandate_id}:{vendor_id}:{amount}:{compliance_hash}"
+        mock_signature = hashlib.sha256(proof_input.encode()).hexdigest().upper()
+
+        return {
+            "type": "IntentMandate",
+            "id": mandate_id,
+            "issued_at": issued_at,
+            "vendor": {
+                "id": vendor_id,
+                "name": vendor_name,
+            },
+            "constraints": {
+                "max_amount": 5000.00,
+                "amount": amount,
+                "currency": currency,
+                "compliance_required": True,
+                "compliance_hash": compliance_hash,
+            },
+            "proof": {
+                "type": "ecdsa-p256-signature",
+                "value": mock_signature,
+                "created": issued_at,
+            },
+        }
+
+    def settle_cart_mandate(self, mandate: dict[str, Any]) -> dict[str, Any]:
+        constraints = mandate["constraints"]
+        settlement_id = f"AP2-{str(uuid.uuid4()).upper()[:12]}"
+
+        return {
+            "settlement_id": settlement_id,
+            "mandate_id": mandate["id"],
+            "vendor": mandate["vendor"]["name"],
+            "amount": constraints["amount"],
+            "currency": constraints["currency"],
+            "status": "SETTLED",
+            "gateway": "AP2_COMPLIANT_BANKING_GATEWAY",
+            "settled_at": int(time.time()),
+            "message": (
+                f"Payment of {constraints['amount']} {constraints['currency']} "
+                f"to {mandate['vendor']['name']} settled successfully via AP2."
+            ),
+        }
+
+
+class HttpAp2Provider:
+    def __init__(
+        self,
+        mandate_endpoint: str,
+        settlement_endpoint: str,
+        api_token: str | None = None,
+        timeout_seconds: float = 10.0,
+    ) -> None:
+        self.mandate_endpoint = mandate_endpoint
+        self.settlement_endpoint = settlement_endpoint
+        self.api_token = api_token
+        self.timeout_seconds = timeout_seconds
+
+    def _headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers["Authorization"] = f"Bearer {self.api_token}"
+        return headers
+
+    def generate_intent_mandate(
+        self,
+        vendor_id: str,
+        vendor_name: str,
+        amount: float,
+        currency: str,
+        compliance_hash: str,
+    ) -> dict[str, Any]:
+        payload = {
+            "vendor_id": vendor_id,
+            "vendor_name": vendor_name,
+            "amount": amount,
+            "currency": currency,
+            "compliance_hash": compliance_hash,
+        }
+
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                response = client.post(
+                    self.mandate_endpoint,
+                    json=payload,
+                    headers=self._headers(),
+                )
+                response.raise_for_status()
+                mandate = response.json()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(
+                "AP2 mandate generation failed. Verify AP2_MANDATE_URL and credentials."
+            ) from exc
+
+        if not isinstance(mandate, dict) or mandate.get("type") != "IntentMandate":
+            raise RuntimeError("AP2 mandate response invalid: expected IntentMandate object.")
+        return mandate
+
+    def settle_cart_mandate(self, mandate: dict[str, Any]) -> dict[str, Any]:
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                response = client.post(
+                    self.settlement_endpoint,
+                    json={"mandate": mandate},
+                    headers=self._headers(),
+                )
+                response.raise_for_status()
+                result = response.json()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(
+                "AP2 settlement request failed. Verify AP2_SETTLEMENT_URL and credentials."
+            ) from exc
+
+        if not isinstance(result, dict) or "status" not in result:
+            raise RuntimeError("AP2 settlement response invalid: expected object with status.")
+        return result
+
+
+def _get_ap2_provider() -> Ap2Provider:
+    mode = os.getenv("AURA_PROVIDER_MODE", "mock").strip().lower()
+    if mode == "mock":
+        return MockAp2Provider()
+
+    if mode == "real":
+        mandate_endpoint = os.getenv("AP2_MANDATE_URL", "").strip()
+        settlement_endpoint = os.getenv("AP2_SETTLEMENT_URL", "").strip()
+        if not mandate_endpoint or not settlement_endpoint:
+            raise RuntimeError(
+                "AURA_PROVIDER_MODE=real requires AP2_MANDATE_URL and AP2_SETTLEMENT_URL."
+            )
+
+        token = os.getenv("AP2_API_TOKEN", "").strip() or None
+        return HttpAp2Provider(
+            mandate_endpoint=mandate_endpoint,
+            settlement_endpoint=settlement_endpoint,
+            api_token=token,
+        )
+
+    raise RuntimeError(
+        f"Unsupported AURA_PROVIDER_MODE='{mode}'. Expected 'mock' or 'real'."
+    )
 
 
 def generate_intent_mandate(
@@ -58,34 +231,14 @@ def generate_intent_mandate(
             "Invalid compliance_hash format. Expected 64 lowercase hex characters."
         )
 
-    mandate_id = str(uuid.uuid4())
-    issued_at = int(time.time())
-
-    # ECDSA-P256 mock proof — in production: signed with enterprise private key
-    proof_input = f"{mandate_id}:{vendor_id}:{amount}:{compliance_hash}"
-    mock_signature = hashlib.sha256(proof_input.encode()).hexdigest().upper()
-
-    return {
-        "type": "IntentMandate",
-        "id": mandate_id,
-        "issued_at": issued_at,
-        "vendor": {
-            "id": vendor_id,
-            "name": vendor_name,
-        },
-        "constraints": {
-            "max_amount": 5000.00,
-            "amount": amount,
-            "currency": currency,
-            "compliance_required": True,
-            "compliance_hash": compliance_hash,
-        },
-        "proof": {
-            "type": "ecdsa-p256-signature",
-            "value": mock_signature,
-            "created": issued_at,
-        },
-    }
+    provider = _get_ap2_provider()
+    return provider.generate_intent_mandate(
+        vendor_id=vendor_id,
+        vendor_name=vendor_name,
+        amount=amount,
+        currency=currency,
+        compliance_hash=compliance_hash,
+    )
 
 
 def settle_cart_mandate(mandate: dict[str, Any]) -> dict[str, Any]:
@@ -122,20 +275,5 @@ def settle_cart_mandate(mandate: dict[str, Any]) -> dict[str, Any]:
     if not proof.get("value"):
         raise ValueError("Mandate missing proof signature. Cannot settle.")
 
-    # Simulate AP2 gateway processing
-    settlement_id = f"AP2-{str(uuid.uuid4()).upper()[:12]}"
-
-    return {
-        "settlement_id": settlement_id,
-        "mandate_id": mandate["id"],
-        "vendor": mandate["vendor"]["name"],
-        "amount": constraints["amount"],
-        "currency": constraints["currency"],
-        "status": "SETTLED",
-        "gateway": "AP2_COMPLIANT_BANKING_GATEWAY",
-        "settled_at": int(time.time()),
-        "message": (
-            f"Payment of {constraints['amount']} {constraints['currency']} "
-            f"to {mandate['vendor']['name']} settled successfully via AP2."
-        ),
-    }
+    provider = _get_ap2_provider()
+    return provider.settle_cart_mandate(mandate)

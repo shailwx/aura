@@ -9,11 +9,119 @@ return a deterministic ComplianceHash for approved vendors.
 from __future__ import annotations
 
 import hashlib
+import os
+import re
 import time
-from typing import Any
+from typing import Any, Protocol
+
+import httpx
 
 # AML blacklist — sourced from BMS compliance database
 _BLACKLISTED_VENDORS = frozenset({"ShadowHardware", "shadowhardware"})
+_COMPLIANCE_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+class ComplianceProvider(Protocol):
+    def verify_vendor_compliance(self, vendor_name: str) -> dict[str, Any]:
+        ...
+
+
+class MockComplianceProvider:
+    def verify_vendor_compliance(self, vendor_name: str) -> dict[str, Any]:
+        normalised = vendor_name.strip().lower()
+        blacklisted_normalised = {v.lower() for v in _BLACKLISTED_VENDORS}
+
+        if normalised in blacklisted_normalised:
+            return {
+                "vendor_name": vendor_name,
+                "status": "REJECTED",
+                "reason": "AML_BLACKLIST",
+                "message": (
+                    f"Vendor '{vendor_name}' is on the AML blacklist. "
+                    "Transaction blocked. Refer to compliance team."
+                ),
+            }
+
+        raw = f"COMPLIANCE:{vendor_name}:{int(time.time() // 3600)}"
+        compliance_hash = hashlib.sha256(raw.encode()).hexdigest()
+
+        return {
+            "vendor_name": vendor_name,
+            "status": "APPROVED",
+            "compliance_hash": compliance_hash,
+            "message": f"Vendor '{vendor_name}' passed KYC/AML checks.",
+        }
+
+
+class BmsComplianceProvider:
+    def __init__(self, endpoint: str, api_token: str | None = None, timeout_seconds: float = 10.0) -> None:
+        self.endpoint = endpoint
+        self.api_token = api_token
+        self.timeout_seconds = timeout_seconds
+
+    def verify_vendor_compliance(self, vendor_name: str) -> dict[str, Any]:
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers["Authorization"] = f"Bearer {self.api_token}"
+
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                response = client.post(
+                    self.endpoint,
+                    json={"vendor_name": vendor_name},
+                    headers=headers,
+                )
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(
+                "BMS compliance request failed. Verify BMS_COMPLIANCE_URL and credentials."
+            ) from exc
+
+        if not isinstance(payload, dict) or "status" not in payload:
+            raise RuntimeError("BMS compliance response is invalid: expected object with 'status'.")
+
+        status = str(payload.get("status", "")).upper()
+        if status == "APPROVED":
+            compliance_hash = str(payload.get("compliance_hash", ""))
+            if not _COMPLIANCE_HASH_PATTERN.fullmatch(compliance_hash):
+                raise RuntimeError(
+                    "BMS compliance response is invalid: approved result missing valid compliance_hash."
+                )
+
+            return {
+                "vendor_name": payload.get("vendor_name", vendor_name),
+                "status": "APPROVED",
+                "compliance_hash": compliance_hash,
+                "message": payload.get("message", "Vendor approved by BMS compliance API."),
+            }
+
+        return {
+            "vendor_name": payload.get("vendor_name", vendor_name),
+            "status": "REJECTED",
+            "reason": payload.get("reason", "UNKNOWN"),
+            "message": payload.get("message", "Vendor rejected by BMS compliance API."),
+        }
+
+
+def _get_compliance_provider() -> ComplianceProvider:
+    mode = os.getenv("AURA_PROVIDER_MODE", "mock").strip().lower()
+    if mode == "mock":
+        return MockComplianceProvider()
+
+    if mode == "real":
+        endpoint = os.getenv("BMS_COMPLIANCE_URL", "").strip()
+        if not endpoint:
+            raise RuntimeError(
+                "AURA_PROVIDER_MODE=real requires BMS_COMPLIANCE_URL to be set."
+            )
+
+        token = os.getenv("BMS_COMPLIANCE_TOKEN", "").strip() or None
+        return BmsComplianceProvider(endpoint=endpoint, api_token=token)
+
+    raise RuntimeError(
+        f"Unsupported AURA_PROVIDER_MODE='{mode}'. Expected 'mock' or 'real'."
+    )
 
 
 def evaluate_vendors_compliance(vendors: list[dict[str, Any]]) -> dict[str, Any]:
@@ -92,28 +200,5 @@ def verify_vendor_compliance(vendor_name: str) -> dict[str, Any]:
           - compliance_hash: 64-char hex string (only present if APPROVED)
           - reason: AML reason code (only present if REJECTED)
     """
-    normalised = vendor_name.strip().lower()
-    blacklisted_normalised = {v.lower() for v in _BLACKLISTED_VENDORS}
-
-    if normalised in blacklisted_normalised:
-        return {
-            "vendor_name": vendor_name,
-            "status": "REJECTED",
-            "reason": "AML_BLACKLIST",
-            "message": (
-                f"Vendor '{vendor_name}' is on the AML blacklist. "
-                "Transaction blocked. Refer to compliance team."
-            ),
-        }
-
-    # Generate a deterministic 64-char ComplianceHash.
-    # In production: returned by the BMS compliance API after KYC verification.
-    raw = f"COMPLIANCE:{vendor_name}:{int(time.time() // 3600)}"
-    compliance_hash = hashlib.sha256(raw.encode()).hexdigest()  # 64 hex chars
-
-    return {
-        "vendor_name": vendor_name,
-        "status": "APPROVED",
-        "compliance_hash": compliance_hash,
-        "message": f"Vendor '{vendor_name}' passed KYC/AML checks.",
-    }
+    provider = _get_compliance_provider()
+    return provider.verify_vendor_compliance(vendor_name)
