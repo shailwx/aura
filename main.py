@@ -14,9 +14,10 @@ import os
 import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
+import logging
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -30,8 +31,11 @@ from tools.intent_tools import (
     build_structured_procurement_prompt,
     parse_procurement_intent,
 )
+from tools.auth_tools import AuthIdentity, require_procurement_identity
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # ── ADK wiring ────────────────────────────────────────────────────────────────
 
@@ -81,10 +85,18 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/run", response_model=RunResponse)
-async def run_procurement(request: RunRequest) -> RunResponse:
+async def run_procurement(
+    request: RunRequest,
+    identity: AuthIdentity = Depends(require_procurement_identity),
+) -> RunResponse:
     """Submit a natural language procurement request to the Aura agent pipeline."""
     session_id = request.session_id or str(uuid.uuid4())
-    user_id = request.user_id
+    user_id = request.user_id if request.user_id != "default-user" else identity.subject
+
+    logger.info(
+        "procurement_run_request",
+        extra={"caller": identity.subject, "role": identity.role, "session_id": session_id},
+    )
 
     # Ensure session exists
     existing = await _session_service.get_session(
@@ -103,6 +115,7 @@ async def run_procurement(request: RunRequest) -> RunResponse:
         )
 
     normalized_prompt = build_structured_procurement_prompt(parsed_intent.intent)
+    normalized_prompt = f"{normalized_prompt}\nCALLER_ROLE: {identity.role}\nCALLER_SUBJECT: {identity.subject}"
 
     new_message = genai_types.Content(
         role="user",
@@ -131,10 +144,18 @@ async def run_procurement(request: RunRequest) -> RunResponse:
 
 
 @app.post("/run/stream")
-async def run_procurement_stream(request: RunRequest) -> StreamingResponse:
+async def run_procurement_stream(
+    request: RunRequest,
+    identity: AuthIdentity = Depends(require_procurement_identity),
+) -> StreamingResponse:
     """Stream the agent response token by token (SSE-compatible)."""
     session_id = request.session_id or str(uuid.uuid4())
-    user_id = request.user_id
+    user_id = request.user_id if request.user_id != "default-user" else identity.subject
+
+    logger.info(
+        "procurement_stream_request",
+        extra={"caller": identity.subject, "role": identity.role, "session_id": session_id},
+    )
 
     existing = await _session_service.get_session(
         app_name=APP_NAME, user_id=user_id, session_id=session_id
@@ -157,6 +178,7 @@ async def run_procurement_stream(request: RunRequest) -> StreamingResponse:
         )
 
     normalized_prompt = build_structured_procurement_prompt(parsed_intent.intent)
+    normalized_prompt = f"{normalized_prompt}\nCALLER_ROLE: {identity.role}\nCALLER_SUBJECT: {identity.subject}"
 
     new_message = genai_types.Content(
         role="user",
