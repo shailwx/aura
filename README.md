@@ -149,6 +149,21 @@ CIRCUIT_BREAKER_RESET_SECONDS=30
 AP2 settlement requests also include a deterministic `Idempotency-Key`
 derived from mandate data to reduce duplicate settlement risk on retries.
 
+### Observability
+
+Aura now includes baseline observability primitives:
+
+- Correlation ID propagation via `X-Correlation-ID`
+- Structured request logs with correlation ID and latency
+- In-memory metrics snapshot endpoint at `GET /metrics`
+
+Quick check:
+
+```bash
+curl -i http://localhost:8080/health
+curl http://localhost:8080/metrics
+```
+
 ### Streamlit Dashboard
 
 ```bash
