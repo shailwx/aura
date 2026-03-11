@@ -10,15 +10,15 @@ Aura is a Multi-Agent System (MAS) built on Google ADK. The Architect orchestrat
 
 ```mermaid
 graph TD
-    User([👤 Enterprise User]) -->|Natural language\nprocurement request| Architect
+    User([👤 Enterprise User]) -->|Natural language<br/>procurement request| Architect
 
     subgraph Aura MAS ["🤖 Aura Multi-Agent System (Google ADK)"]
-        Architect["🏛️ Architect\nRoot LlmAgent\ngemini-2.0-flash"]
+        Architect["🏛️ Architect<br/>Root LlmAgent<br/>gemini-2.0-flash"]
 
         subgraph Pipeline ["⚙️ AuraPipeline (SequentialAgent)"]
-            Scout["🔭 Scout\nLlmAgent\nUCP Discovery"]
-            Sentinel["🛡️ Sentinel\nLlmAgent\nKYC/AML Compliance"]
-            Closer["💳 Closer\nLlmAgent\nAP2 Settlement"]
+            Scout["🔭 Scout<br/>LlmAgent<br/>UCP Discovery"]
+            Sentinel["🛡️ Sentinel<br/>LlmAgent<br/>KYC/AML Compliance"]
+            Closer["💳 Closer<br/>LlmAgent<br/>AP2 Settlement"]
         end
 
         Architect -->|delegates to| Pipeline
@@ -26,15 +26,15 @@ graph TD
         Sentinel -->|compliance results → session_state| Closer
     end
 
-    Scout -->|GET /.well-known/ucp| UCP[("🌐 UCP Network\nVendor Endpoints")]
-    Sentinel -->|KYC/AML lookup| BMS[("🏦 BMS\nCore Banking\nCompliance DB")]
-    Closer -->|Intent Mandate + ECDSA-P256| AP2[("🔐 AP2 Gateway\nPayment Settlement")]
+    Scout -->|GET /.well-known/ucp| UCP[("🌐 UCP Network<br/>Vendor Endpoints")]
+    Sentinel -->|KYC/AML lookup| BMS[("🏦 BMS<br/>Core Banking<br/>Compliance DB")]
+    Closer -->|Intent Mandate + ECDSA-P256| AP2[("🔐 AP2 Gateway<br/>Payment Settlement")]
 
     Closer -->|Settlement result| Architect
     Architect -->|Summary + settlement_id| User
 
     subgraph GCP ["☁️ Google Cloud (europe-north1)"]
-        VertexAI["✨ Vertex AI\nGemini 2.0 Flash"]
+        VertexAI["✨ Vertex AI<br/>Gemini 2.0 Flash"]
     end
 
     Architect -.->|LLM inference| VertexAI
