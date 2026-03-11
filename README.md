@@ -74,11 +74,23 @@ curl -X POST http://localhost:8080/run \
   -d '{"message": "Buy laptops from ShadowHardware"}'
 ```
 
+See [API Reference](docs/API_REFERENCE.md) for full endpoint documentation.
+
+### Streamlit Dashboard
+
+```bash
+streamlit run ui/dashboard.py
+```
+
+Opens at `http://localhost:8501`. Runs the full pipeline visually with real-time agent status cards, vendor tables, compliance badges, and settlement results. Works in **demo mode** (no GCP credentials needed) or **API mode** (calls the FastAPI server). See [Dashboard Guide](docs/DASHBOARD.md) for details.
+
 ### Run Tests
 
 ```bash
 pytest tests/ -v
 ```
+
+See [Testing Guide](docs/TESTING.md) for full test suite documentation.
 
 ---
 
@@ -115,14 +127,26 @@ aura/
 
 ## Documentation
 
+### For Business Users
+
 | Document | Description |
 | :--- | :--- |
+| [Business Guide](docs/BUSINESS_GUIDE.md) | What Aura does, business value, use cases, glossary — no code |
+| [PRD](AURA_PRD.md) | Full Product Requirements Document |
+
+### For Technical Users
+
+| Document | Description |
+| :--- | :--- |
+| [Technical Guide](docs/TECHNICAL_GUIDE.md) | Setup, agent internals, tool layer, extending Aura, production checklist |
 | [Architecture](docs/ARCHITECTURE.md) | System topology and component diagram |
 | [Agent Flow](docs/AGENT_FLOW.md) | Sequence diagrams for happy path and compliance block |
 | [Data Model](docs/DATA_MODEL.md) | VendorEndpoint, IntentMandate, ComplianceResult schemas |
+| [API Reference](docs/API_REFERENCE.md) | REST endpoints — `/run`, `/run/stream`, `/health` |
+| [Dashboard](docs/DASHBOARD.md) | Streamlit UI guide (demo & API modes) |
+| [Testing](docs/TESTING.md) | Test suite coverage and how to run tests |
 | [Deployment](docs/DEPLOYMENT.md) | Kagent Kubernetes deployment guide |
-| [Protocols](docs/PROTOCOLS.md) | UCP and AP2 protocol design rationale |
-| [PRD](AURA_PRD.md) | Full Product Requirements Document |
+| [Protocols](docs/PROTOCOLS.md) | UCP, AP2, and BMS protocol design rationale |
 
 ---
 
