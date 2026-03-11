@@ -20,13 +20,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-load_dotenv()
-
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 from agents.architect import architect
+
+load_dotenv()
 
 # ── ADK wiring ────────────────────────────────────────────────────────────────
 
