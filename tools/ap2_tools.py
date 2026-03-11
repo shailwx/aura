@@ -199,12 +199,15 @@ def generate_intent_mandate(
     amount: float,
     currency: str = "USD",
     compliance_hash: str = "",
+    quantity: int = 1,
+    discount_applied: float = 0.0,
 ) -> dict[str, Any]:
     """Generate an AP2 Intent Mandate — a W3C Verifiable Credential authorising payment.
 
     The Intent Mandate is the cryptographic instrument that authorises the
     Closer agent to settle a transaction. It embeds the compliance hash from
-    the Sentinel to prove the transaction passed KYC/AML checks.
+    the Sentinel to prove the transaction passed KYC/AML checks, and records
+    the quantity and discount for full payment auditability.
 
     Args:
         vendor_id: UCP vendor identifier.
@@ -212,6 +215,8 @@ def generate_intent_mandate(
         amount: Transaction amount (must be <= max_amount constraint).
         currency: ISO 4217 currency code. Defaults to "USD".
         compliance_hash: ComplianceHash from the Sentinel agent.
+        quantity: Number of units being purchased. Defaults to 1.
+        discount_applied: Total discount amount in USD saved vs. base price. Defaults to 0.0.
 
     Returns:
         IntentMandate dict matching the AP2 / PRD data model.
@@ -232,13 +237,17 @@ def generate_intent_mandate(
         )
 
     provider = _get_ap2_provider()
-    return provider.generate_intent_mandate(
+    mandate = provider.generate_intent_mandate(
         vendor_id=vendor_id,
         vendor_name=vendor_name,
         amount=amount,
         currency=currency,
         compliance_hash=compliance_hash,
     )
+    # Embed bulk-purchase audit fields for payment auditability.
+    mandate["constraints"]["quantity"] = quantity
+    mandate["constraints"]["discount_applied"] = discount_applied
+    return mandate
 
 
 def settle_cart_mandate(mandate: dict[str, Any]) -> dict[str, Any]:

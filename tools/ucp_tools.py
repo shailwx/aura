@@ -10,10 +10,37 @@ exercise the Sentinel compliance path.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Any, Protocol
 
 import httpx
+
+
+
+@dataclass
+class PricingTier:
+    """A single volume pricing tier offered by a vendor.
+
+    Attributes:
+        min_qty: Minimum number of units for this tier to apply (inclusive).
+        max_qty: Maximum number of units for this tier (inclusive); None = no upper bound.
+        unit_price_usd: Per-unit price in USD at this tier.
+        discount_pct: Percentage discount off the base (Tier-1) price.
+    """
+
+    min_qty: int
+    max_qty: int | None
+    unit_price_usd: float
+    discount_pct: float
+
+
+# Platform-level rebate applied on top of any vendor tier.
+# These percentages are deducted from the vendor-tier unit price.
+PLATFORM_REBATE_TIERS: list[dict[str, Any]] = [
+    {"min_qty": 0,  "max_qty": 4,    "rebate_pct": 0.0},
+    {"min_qty": 5,  "max_qty": 19,   "rebate_pct": 1.0},
+    {"min_qty": 20, "max_qty": None,  "rebate_pct": 2.0},
+]
 
 
 @dataclass
@@ -22,10 +49,11 @@ class VendorEndpoint:
     name: str
     capability: str
     product: str
-    unit_price_usd: float
+    unit_price_usd: float          # Tier-1 (base) price — kept for backward compatibility
     available_units: int
     ucp_endpoint: str
     country: str
+    pricing_tiers: list[PricingTier] = field(default_factory=list)
 
 
 _MOCK_VENDOR_DB: list[VendorEndpoint] = [
@@ -38,6 +66,11 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
         available_units=50,
         ucp_endpoint="https://techcorp-nordic.example/.well-known/ucp",
         country="NO",
+        pricing_tiers=[
+            PricingTier(min_qty=1,  max_qty=9,    unit_price_usd=1299.00, discount_pct=0.0),
+            PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1199.00, discount_pct=7.7),
+            PricingTier(min_qty=50, max_qty=None, unit_price_usd=999.00,  discount_pct=23.1),
+        ],
     ),
     VendorEndpoint(
         id="v-002",
@@ -48,6 +81,11 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
         available_units=120,
         ucp_endpoint="https://eurotech.example/.well-known/ucp",
         country="DE",
+        pricing_tiers=[
+            PricingTier(min_qty=1,  max_qty=9,    unit_price_usd=1349.00, discount_pct=0.0),
+            PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1249.00, discount_pct=7.4),
+            PricingTier(min_qty=50, max_qty=None, unit_price_usd=1049.00, discount_pct=22.3),
+        ],
     ),
     VendorEndpoint(
         id="v-003",
@@ -58,16 +96,24 @@ _MOCK_VENDOR_DB: list[VendorEndpoint] = [
         available_units=30,
         ucp_endpoint="https://nordhardware.example/.well-known/ucp",
         country="NO",
+        pricing_tiers=[
+            PricingTier(min_qty=1,  max_qty=9,    unit_price_usd=1280.00, discount_pct=0.0),
+            PricingTier(min_qty=10, max_qty=49,   unit_price_usd=1180.00, discount_pct=7.8),
+            PricingTier(min_qty=50, max_qty=None, unit_price_usd=980.00,  discount_pct=23.4),
+        ],
     ),
     VendorEndpoint(
         id="v-999",
         name="ShadowHardware",
         capability="dev.ucp.shopping",
         product="Laptop Pro 15",
-        unit_price_usd=899.00,  # suspiciously cheap
+        unit_price_usd=899.00,  # suspiciously cheap — no volume tiers (blacklisted test vendor)
         available_units=999,
         ucp_endpoint="https://shadowhardware.example/.well-known/ucp",
         country="XX",
+        pricing_tiers=[
+            PricingTier(min_qty=1, max_qty=None, unit_price_usd=899.00, discount_pct=0.0),
+        ],
     ),
 ]
 
@@ -133,13 +179,15 @@ def discover_vendors(query: str) -> list[dict[str, Any]]:
 
     Queries the UCP discovery network for vendors matching the given
     procurement query. Returns a list of VendorEndpoint objects as dicts,
-    sorted by unit price ascending.
+    sorted by unit price ascending. Each vendor includes a ``pricing_tiers``
+    list with volume discount information.
 
     Args:
         query: Natural language procurement query, e.g. "10 laptops".
 
     Returns:
-        List of vendor endpoint dicts with id, name, price, availability, etc.
+        List of vendor endpoint dicts with id, name, price, availability,
+        pricing_tiers, etc.
     """
     provider = _get_ucp_provider()
     return provider.discover_vendors(query)
