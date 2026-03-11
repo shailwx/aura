@@ -2,7 +2,7 @@
 
 ## Overview
 
-Aura is a Multi-Agent System (MAS) built on Google ADK. The Architect orchestrates three specialist sub-agents — Scout, Sentinel, and Closer — in a sequential pipeline. Each agent has a single responsibility and communicates via ADK session state.
+Aura is a Multi-Agent System (MAS) built on Google ADK. The Architect orchestrates four specialist sub-agents — Governor, Scout, Sentinel, and Closer — in a sequential pipeline. Each agent has a single responsibility and communicates via ADK session state.
 
 ---
 
@@ -13,15 +13,18 @@ graph TD
     User([👤 Enterprise User]) -->|Natural language<br/>procurement request| Architect
 
     subgraph Aura MAS ["🤖 Aura Multi-Agent System (Google ADK)"]
-        Architect["🏛️ Architect<br/>Root LlmAgent<br/>gemini-2.0-flash"]
+        Architect["🏛️ Architect<br/><i>Pipeline Commander</i><br/>gemini-2.0-flash"]
 
         subgraph Pipeline ["⚙️ AuraPipeline (SequentialAgent)"]
-            Scout["🔭 Scout<br/>LlmAgent<br/>UCP Discovery"]
-            Sentinel["🛡️ Sentinel<br/>LlmAgent<br/>KYC/AML Compliance"]
-            Closer["💳 Closer<br/>LlmAgent<br/>AP2 Settlement"]
+            Governor["⚖️ Governor<br/><i>Policy Gatekeeper</i><br/>LlmAgent"]
+            Scout["🔭 Scout<br/><i>Vendor Pathfinder</i><br/>LlmAgent"]
+            Sentinel["🛡️ Sentinel<br/><i>Compliance Guardian</i><br/>LlmAgent"]
+            Closer["💳 Closer<br/><i>Deal Executor</i><br/>LlmAgent"]
         end
 
         Architect -->|delegates to| Pipeline
+        Governor -->|policy: ALLOW → session_state| Scout
+        Governor -->|policy: BLOCK| PolicyBlocked(["⛔ Policy Blocked"])
         Scout -->|vendor list → session_state| Sentinel
         Sentinel -->|compliance results → session_state| Closer
     end
@@ -38,6 +41,7 @@ graph TD
     end
 
     Architect -.->|LLM inference| VertexAI
+    Governor -.->|LLM inference| VertexAI
     Scout -.->|LLM inference| VertexAI
     Sentinel -.->|LLM inference| VertexAI
     Closer -.->|LLM inference| VertexAI
@@ -54,7 +58,8 @@ graph TD
 | Component | Type | Responsibility |
 | :--- | :--- | :--- |
 | **Architect** | `LlmAgent` (root) | Parses user intent, owns the pipeline, summarises outcome |
-| **AuraPipeline** | `SequentialAgent` | Chains Scout → Sentinel → Closer in order |
+| **AuraPipeline** | `SequentialAgent` | Chains Governor → Scout → Sentinel → Closer in order |
+| **Governor** | `LlmAgent` | Calls `evaluate_procurement_policy()`; halts pipeline on policy violation |
 | **Scout** | `LlmAgent` | Calls `discover_vendors()`, writes vendor list to session state |
 | **Sentinel** | `LlmAgent` | Calls `verify_vendor_compliance()` for every vendor; blocks on REJECTED |
 | **Closer** | `LlmAgent` | Calls `generate_intent_mandate()` + `settle_cart_mandate()`; no-ops if blocked |
@@ -68,6 +73,8 @@ User message
     ↓
 Architect (parse intent)
     ↓
+Governor → session_state["governor_results"] = POLICY_CLEAR | POLICY_WARNINGS | POLICY_BLOCKED
+    ↓ (only if POLICY_CLEAR or POLICY_WARNINGS)
 Scout → session_state["scout_results"] = [VendorEndpoint, ...]
     ↓
 Sentinel → session_state["sentinel_results"] = {approved: [...], rejected: [...]}
@@ -81,9 +88,27 @@ User response
 
 ---
 
-## Compliance Block Flow
+## Block Flows
 
-If any vendor fails the Sentinel's KYC/AML check:
+### Policy Block (Governor)
+
+If the request violates procurement policy:
+
+```
+Governor evaluates evaluate_procurement_policy()
+    ↓
+Returns POLICY_BLOCKED (category denied / spend cap exceeded / rate limit hit)
+    ↓
+Pipeline halts — Scout, Sentinel, and Closer never run
+    ↓
+Architect reports policy violation to user
+    ↓
+No vendor discovery or payment tools are ever called
+```
+
+### Compliance Block (Sentinel)
+
+If any vendor fails the KYC/AML check:
 
 ```
 Sentinel detects REJECTED vendor
