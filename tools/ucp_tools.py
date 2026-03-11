@@ -15,6 +15,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from tools.reliability_tools import CircuitBreaker, CircuitOpenError, execute_with_retries
+
 
 @dataclass
 class VendorEndpoint:
@@ -87,13 +89,32 @@ class HttpUcpProvider:
     def __init__(self, discovery_url: str, timeout_seconds: float = 10.0) -> None:
         self.discovery_url = discovery_url
         self.timeout_seconds = timeout_seconds
+        self.retry_attempts = int(os.getenv("HTTP_RETRY_ATTEMPTS", "3"))
+        self.retry_backoff_seconds = float(os.getenv("HTTP_RETRY_BACKOFF_SECONDS", "0.2"))
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "3")),
+            reset_timeout_seconds=float(os.getenv("CIRCUIT_BREAKER_RESET_SECONDS", "30")),
+        )
 
     def discover_vendors(self, query: str) -> list[dict[str, Any]]:
-        try:
+        def _request() -> Any:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.get(self.discovery_url, params={"q": query})
                 response.raise_for_status()
-                payload = response.json()
+                return response.json()
+
+        try:
+            payload = execute_with_retries(
+                _request,
+                attempts=self.retry_attempts,
+                base_backoff_seconds=self.retry_backoff_seconds,
+                circuit_breaker=self._circuit_breaker,
+                retryable_exceptions=(httpx.HTTPError,),
+            )
+        except CircuitOpenError as exc:
+            raise RuntimeError(
+                "UCP provider circuit is open due to repeated failures. Try again later."
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 "UCP provider request failed. Verify UCP_DISCOVERY_URL and network connectivity."

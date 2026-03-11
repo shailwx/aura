@@ -19,6 +19,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from tools.reliability_tools import CircuitBreaker, CircuitOpenError, execute_with_retries
+
 
 _COMPLIANCE_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -107,6 +109,12 @@ class HttpAp2Provider:
         self.settlement_endpoint = settlement_endpoint
         self.api_token = api_token
         self.timeout_seconds = timeout_seconds
+        self.retry_attempts = int(os.getenv("HTTP_RETRY_ATTEMPTS", "3"))
+        self.retry_backoff_seconds = float(os.getenv("HTTP_RETRY_BACKOFF_SECONDS", "0.2"))
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "3")),
+            reset_timeout_seconds=float(os.getenv("CIRCUIT_BREAKER_RESET_SECONDS", "30")),
+        )
 
     def _headers(self) -> dict[str, str]:
         headers: dict[str, str] = {"Content-Type": "application/json"}
@@ -130,7 +138,7 @@ class HttpAp2Provider:
             "compliance_hash": compliance_hash,
         }
 
-        try:
+        def _request() -> Any:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.post(
                     self.mandate_endpoint,
@@ -138,7 +146,20 @@ class HttpAp2Provider:
                     headers=self._headers(),
                 )
                 response.raise_for_status()
-                mandate = response.json()
+                return response.json()
+
+        try:
+            mandate = execute_with_retries(
+                _request,
+                attempts=self.retry_attempts,
+                base_backoff_seconds=self.retry_backoff_seconds,
+                circuit_breaker=self._circuit_breaker,
+                retryable_exceptions=(httpx.HTTPError,),
+            )
+        except CircuitOpenError as exc:
+            raise RuntimeError(
+                "AP2 circuit is open due to repeated failures. Try again later."
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 "AP2 mandate generation failed. Verify AP2_MANDATE_URL and credentials."
@@ -149,15 +170,31 @@ class HttpAp2Provider:
         return mandate
 
     def settle_cart_mandate(self, mandate: dict[str, Any]) -> dict[str, Any]:
-        try:
+        headers = self._headers()
+        headers["Idempotency-Key"] = build_settlement_idempotency_key(mandate)
+
+        def _request() -> Any:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.post(
                     self.settlement_endpoint,
                     json={"mandate": mandate},
-                    headers=self._headers(),
+                    headers=headers,
                 )
                 response.raise_for_status()
-                result = response.json()
+                return response.json()
+
+        try:
+            result = execute_with_retries(
+                _request,
+                attempts=self.retry_attempts,
+                base_backoff_seconds=self.retry_backoff_seconds,
+                circuit_breaker=self._circuit_breaker,
+                retryable_exceptions=(httpx.HTTPError,),
+            )
+        except CircuitOpenError as exc:
+            raise RuntimeError(
+                "AP2 circuit is open due to repeated failures. Try again later."
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 "AP2 settlement request failed. Verify AP2_SETTLEMENT_URL and credentials."
@@ -191,6 +228,15 @@ def _get_ap2_provider() -> Ap2Provider:
     raise RuntimeError(
         f"Unsupported AURA_PROVIDER_MODE='{mode}'. Expected 'mock' or 'real'."
     )
+
+
+def build_settlement_idempotency_key(mandate: dict[str, Any]) -> str:
+    """Build a deterministic idempotency key for settlement requests."""
+    mandate_id = str(mandate.get("id", ""))
+    constraints = mandate.get("constraints", {}) if isinstance(mandate, dict) else {}
+    compliance_hash = str(constraints.get("compliance_hash", ""))
+    raw = f"{mandate_id}:{compliance_hash}".encode()
+    return hashlib.sha256(raw).hexdigest()
 
 
 def generate_intent_mandate(

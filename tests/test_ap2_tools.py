@@ -11,7 +11,11 @@ Branch: test/closer-unit
 import re
 import uuid
 import pytest
-from tools.ap2_tools import generate_intent_mandate, settle_cart_mandate
+from tools.ap2_tools import (
+    build_settlement_idempotency_key,
+    generate_intent_mandate,
+    settle_cart_mandate,
+)
 
 
 # ─────────────────────────────────────────────
@@ -153,3 +157,11 @@ class TestSettleCartMandate:
         bad["proof"] = {"type": "ecdsa-p256-signature", "value": "", "created": 0}
         with pytest.raises(ValueError, match="proof"):
             settle_cart_mandate(bad)
+
+
+class TestIdempotency:
+    def test_settlement_idempotency_key_is_deterministic(self, valid_mandate):
+        key1 = build_settlement_idempotency_key(valid_mandate)
+        key2 = build_settlement_idempotency_key(valid_mandate)
+        assert key1 == key2
+        assert len(key1) == 64
