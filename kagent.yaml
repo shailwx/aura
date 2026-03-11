@@ -1,0 +1,262 @@
+# Aura — Kagent v1alpha2 Manifests
+# Cloud-native multi-agent deployment for Kubernetes
+#
+# Deploy: kubectl apply -f kagent.yaml
+# Requires: kagent install (installs kagent.dev/v1alpha2 CRDs)
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aura
+
+---
+# ── Shared ModelConfig — Vertex AI Gemini 2.0 Flash ───────────────────────────
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: gemini-2-flash-vertexai
+  namespace: aura
+spec:
+  provider: VertexAI
+  modelID: gemini-2.0-flash
+  project: ai-agent-labs-oslo-26-team-6
+  location: europe-north1
+
+---
+# ── Scout Agent ───────────────────────────────────────────────────────────────
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: scout
+  namespace: aura
+  labels:
+    app: aura
+    component: scout
+    role: discovery
+spec:
+  description: "Discovers vendors via Universal Commerce Protocol (UCP)."
+  modelConfig:
+    name: gemini-2-flash-vertexai
+  systemPrompt: |
+    You are the Scout agent in the Aura procurement system.
+    Discover vendors for the procurement request using the discover_vendors tool.
+    Present all vendors including price, availability, and country code.
+    Flag vendors with country code "XX" or suspiciously low prices as risky.
+  tools:
+    - name: discover_vendors
+      description: "Query UCP discovery network for vendors matching a procurement query."
+      type: McpServer
+      mcpServer:
+        toolServer: aura-tool-server
+        toolNames:
+          - discover_vendors
+  template:
+    spec:
+      containers:
+        - name: scout
+          image: europe-north1-docker.pkg.dev/ai-agent-labs-oslo-26-team-6/aura/aura:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_CLOUD_PROJECT
+              value: ai-agent-labs-oslo-26-team-6
+            - name: GOOGLE_CLOUD_LOCATION
+              value: europe-north1
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+# ── Sentinel Agent ────────────────────────────────────────────────────────────
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: sentinel
+  namespace: aura
+  labels:
+    app: aura
+    component: sentinel
+    role: compliance
+spec:
+  description: "Executes KYC/AML compliance checks via Core Banking System (BMS)."
+  modelConfig:
+    name: gemini-2-flash-vertexai
+  systemPrompt: |
+    You are the Sentinel agent in the Aura procurement system.
+    Run EVERY vendor through the compliance database via verify_vendor_compliance.
+    If ANY vendor returns REJECTED: output COMPLIANCE_BLOCKED and stop.
+    If ALL pass: output SENTINEL_APPROVED with their ComplianceHashes.
+    NEVER allow a blacklisted vendor to proceed to payment.
+  tools:
+    - name: verify_vendor_compliance
+      description: "Verify a vendor against the BMS KYC/AML compliance database."
+      type: McpServer
+      mcpServer:
+        toolServer: aura-tool-server
+        toolNames:
+          - verify_vendor_compliance
+  template:
+    spec:
+      containers:
+        - name: sentinel
+          image: europe-north1-docker.pkg.dev/ai-agent-labs-oslo-26-team-6/aura/aura:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_CLOUD_PROJECT
+              value: ai-agent-labs-oslo-26-team-6
+            - name: GOOGLE_CLOUD_LOCATION
+              value: europe-north1
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+# ── Closer Agent ──────────────────────────────────────────────────────────────
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: closer
+  namespace: aura
+  labels:
+    app: aura
+    component: closer
+    role: settlement
+spec:
+  description: "Handles AP2 payment settlement with Intent Mandate generation."
+  modelConfig:
+    name: gemini-2-flash-vertexai
+  systemPrompt: |
+    You are the Closer agent in the Aura procurement system.
+    If COMPLIANCE_BLOCKED is present in context: output PAYMENT_ABORTED immediately.
+    Otherwise: generate an IntentMandate and settle via AP2.
+    Report SETTLEMENT_CONFIRMED with settlement_id on success.
+  tools:
+    - name: generate_intent_mandate
+      description: "Generate a W3C Verifiable Credential Intent Mandate for AP2 payment."
+      type: McpServer
+      mcpServer:
+        toolServer: aura-tool-server
+        toolNames:
+          - generate_intent_mandate
+    - name: settle_cart_mandate
+      description: "Submit a signed Intent Mandate to the AP2 settlement gateway."
+      type: McpServer
+      mcpServer:
+        toolServer: aura-tool-server
+        toolNames:
+          - settle_cart_mandate
+  template:
+    spec:
+      containers:
+        - name: closer
+          image: europe-north1-docker.pkg.dev/ai-agent-labs-oslo-26-team-6/aura/aura:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_CLOUD_PROJECT
+              value: ai-agent-labs-oslo-26-team-6
+            - name: GOOGLE_CLOUD_LOCATION
+              value: europe-north1
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+# ── Architect Agent (root orchestrator) ──────────────────────────────────────
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: architect
+  namespace: aura
+  labels:
+    app: aura
+    component: architect
+    role: orchestrator
+spec:
+  description: "Root orchestrator of the Aura autonomous procurement pipeline."
+  modelConfig:
+    name: gemini-2-flash-vertexai
+  systemPrompt: |
+    You are Architect, the root orchestrator of Project Aura.
+    Coordinate the Scout → Sentinel → Closer pipeline.
+    Always prioritise compliance. Report outcome clearly to the user.
+  agentTeam:
+    - name: scout
+      namespace: aura
+    - name: sentinel
+      namespace: aura
+    - name: closer
+      namespace: aura
+  template:
+    spec:
+      containers:
+        - name: architect
+          image: europe-north1-docker.pkg.dev/ai-agent-labs-oslo-26-team-6/aura/aura:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_CLOUD_PROJECT
+              value: ai-agent-labs-oslo-26-team-6
+            - name: GOOGLE_CLOUD_LOCATION
+              value: europe-north1
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "1"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+---
+# ── Service — expose Architect externally ─────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: aura-architect
+  namespace: aura
+  labels:
+    app: aura
+    component: architect
+spec:
+  selector:
+    app: aura
+    component: architect
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

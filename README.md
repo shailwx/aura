@@ -1,0 +1,141 @@
+# Aura — Autonomous Reliable Agentic Commerce
+
+> **Multi-agent B2B procurement with built-in KYC/AML compliance and verifiable payment.**
+
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
+[![Google ADK](https://img.shields.io/badge/Google%20ADK-1.0-green)](https://github.com/google/adk-python)
+[![Gemini](https://img.shields.io/badge/Gemini-2.0%20Flash-orange)](https://cloud.google.com/vertex-ai)
+[![Kagent](https://img.shields.io/badge/Kagent-v1alpha2-purple)](https://kagent.dev)
+[![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey)](LICENSE)
+
+---
+
+## What is Aura?
+
+Aura automates the full B2B procurement lifecycle — from vendor discovery to payment settlement — using a squad of autonomous AI agents. Unlike traditional shopping bots, Aura integrates **Real-time KYC/AML compliance** and **cryptographically verifiable payment mandates** before any transaction is settled.
+
+**Built for:** Google AI Agent Labs Oslo 2026 — Team 6
+
+---
+
+## The Agent Squad
+
+| Agent | Role | Protocol |
+| :--- | :--- | :--- |
+| **Architect** | Root orchestrator — parses intent, manages pipeline | Google ADK `LlmAgent` |
+| **Scout** | Discovers vendors via Universal Commerce Protocol | UCP `/.well-known/ucp` |
+| **Sentinel** | KYC/AML compliance gate via Core Banking (BMS) | BMS Compliance API |
+| **Closer** | Generates Intent Mandate and settles via AP2 | AP2 `IntentMandate` + ECDSA-P256 |
+
+**Flow:** User → Architect → Scout → Sentinel → Closer → Settlement
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Google Cloud project with Vertex AI enabled (`ai-agent-labs-oslo-26-team-6`)
+- Application Default Credentials: `gcloud auth application-default login`
+
+### Install & Run
+
+```bash
+# Clone and enter
+git clone https://github.com/shailwx/aura && cd aura
+
+# Set up virtualenv
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env if needed (project/region already pre-configured)
+
+# Launch ADK dev UI — full browser-based agent playground
+adk web
+
+# Or run the FastAPI server directly
+uvicorn main:app --reload --port 8080
+```
+
+### Try it
+
+```bash
+# Happy path — legitimate vendor
+curl -X POST http://localhost:8080/run \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Buy 3 Laptop Pro 15 units from the best vendor"}'
+
+# Blocked path — triggers Sentinel compliance block
+curl -X POST http://localhost:8080/run \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Buy laptops from ShadowHardware"}'
+```
+
+### Run Tests
+
+```bash
+pytest tests/ -v
+```
+
+---
+
+## Project Structure
+
+```
+aura/
+├── main.py               # FastAPI app + ADK Runner
+├── agents/
+│   ├── architect.py      # Root orchestrator (SequentialAgent wiring)
+│   ├── scout.py          # UCP vendor discovery
+│   ├── sentinel.py       # KYC/AML compliance gate
+│   └── closer.py         # AP2 payment settlement
+├── tools/
+│   ├── ucp_tools.py      # Universal Commerce Protocol mock
+│   ├── compliance_tools.py  # BMS KYC/AML compliance mock
+│   └── ap2_tools.py      # Agent Payments Protocol v2 mock
+├── docs/
+│   ├── ARCHITECTURE.md   # System architecture diagram
+│   ├── AGENT_FLOW.md     # Sequence diagrams (happy + blocked path)
+│   ├── DATA_MODEL.md     # Data model class diagram
+│   ├── DEPLOYMENT.md     # Kagent deployment guide
+│   └── PROTOCOLS.md      # UCP + AP2 protocol design rationale
+├── tests/
+│   ├── test_compliance_tool.py
+│   └── test_flow.py
+├── Dockerfile            # Multi-stage production container
+├── kagent.yaml           # Kagent v1alpha2 CRD manifests
+├── AURA_PRD.md           # Product Requirements Document
+└── requirements.txt
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+| :--- | :--- |
+| [Architecture](docs/ARCHITECTURE.md) | System topology and component diagram |
+| [Agent Flow](docs/AGENT_FLOW.md) | Sequence diagrams for happy path and compliance block |
+| [Data Model](docs/DATA_MODEL.md) | VendorEndpoint, IntentMandate, ComplianceResult schemas |
+| [Deployment](docs/DEPLOYMENT.md) | Kagent Kubernetes deployment guide |
+| [Protocols](docs/PROTOCOLS.md) | UCP and AP2 protocol design rationale |
+| [PRD](AURA_PRD.md) | Full Product Requirements Document |
+
+---
+
+## GCP Configuration
+
+| Setting | Value |
+| :--- | :--- |
+| Project | `ai-agent-labs-oslo-26-team-6` |
+| Region | `europe-north1` |
+| Model | `gemini-2.0-flash` via Vertex AI |
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
