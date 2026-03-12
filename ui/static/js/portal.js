@@ -216,7 +216,7 @@ function setActiveNav(viewId) {
 
 function startAutoRefresh(intervalMs) {
   clearAutoRefresh();
-  autoRefreshTimer = setInterval(() => loadView(currentView), intervalMs);
+  autoRefreshTimer = setInterval(() => loadView(currentView, true), intervalMs);
 }
 
 function clearAutoRefresh() {
@@ -225,43 +225,43 @@ function clearAutoRefresh() {
 
 // ── View loader ────────────────────────────────────────────────────────────────
 
-async function loadView(viewId) {
+async function loadView(viewId, silent = false) {
   currentView = viewId;
   clearAutoRefresh();
   setActiveNav(viewId);
-  toolbarActions.innerHTML = "";
+  if (!silent) toolbarActions.innerHTML = "";
 
   const viewMap = {
     // Overview
-    overview:  () => fetchAndRender("/api/portal/overview", renderOverview, 8000),
+    overview:  () => fetchAndRender("/api/portal/overview", renderOverview, 8000, silent),
     // Procurement
-    history:   () => fetchAndRender("/api/portal/procurement/history",  renderHistory),
-    pipelines: () => fetchAndRender("/api/portal/procurement/pipelines", renderPipelines),
-    submit:    () => renderSubmitPage(),
+    history:   () => fetchAndRender("/api/portal/procurement/history",  renderHistory, 0, silent),
+    pipelines: () => fetchAndRender("/api/portal/procurement/pipelines", renderPipelines, 0, silent),
+    submit:    () => { if (!silent) renderSubmitPage(); },
     // Finance
-    pending:   () => fetchAndRender("/api/portal/finance/pending",       renderPending),
-    approved:  () => fetchAndRender("/api/portal/finance/history",        renderApprovalHistory),
+    pending:   () => fetchAndRender("/api/portal/finance/pending",       renderPending, 0, silent),
+    approved:  () => fetchAndRender("/api/portal/finance/history",        renderApprovalHistory, 0, silent),
     // Compliance
-    events:    () => fetchAndRender("/api/portal/compliance/events",     renderEvents, 5000),
-    blocked:   () => fetchAndRender("/api/portal/compliance/blocked",    renderBlocked),
+    events:    () => fetchAndRender("/api/portal/compliance/events",     renderEvents, 5000, silent),
+    blocked:   () => fetchAndRender("/api/portal/compliance/blocked",    renderBlocked, 0, silent),
     stats:     () => fetchAndRenderMulti(
                        ["/api/portal/compliance/stats", "/api/portal/compliance/events", "/api/portal/compliance/blocked"],
-                       renderComplianceStats),
+                       renderComplianceStats, 0, silent),
     // IT Manager
-    vendors:   () => fetchAndRender("/api/portal/itmanager/vendors",     renderVendors),
-    contracts: () => fetchAndRender("/api/portal/itmanager/contracts",   renderContracts),
+    vendors:   () => fetchAndRender("/api/portal/itmanager/vendors",     renderVendors, 0, silent),
+    contracts: () => fetchAndRender("/api/portal/itmanager/contracts",   renderContracts, 0, silent),
     // Admin
-    metrics:   () => fetchAndRender("/api/portal/admin/metrics",         renderMetrics, 10000),
-    policies:  () => fetchAndRender("/api/portal/admin/policies",        renderPolicies),
-    queue:     () => fetchAndRender("/api/portal/admin/queue",           renderAdminQueue),
+    metrics:   () => fetchAndRender("/api/portal/admin/metrics",         renderMetrics, 10000, silent),
+    policies:  () => fetchAndRender("/api/portal/admin/policies",        renderPolicies, 0, silent),
+    queue:     () => fetchAndRender("/api/portal/admin/queue",           renderAdminQueue, 0, silent),
   };
 
   const fn = viewMap[viewId];
   if (fn) fn();
 }
 
-async function fetchAndRender(url, renderFn, autoRefreshMs = 0) {
-  showLoading();
+async function fetchAndRender(url, renderFn, autoRefreshMs = 0, silent = false) {
+  if (!silent) showLoading();
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -269,18 +269,18 @@ async function fetchAndRender(url, renderFn, autoRefreshMs = 0) {
     renderFn(data);
     if (autoRefreshMs > 0) startAutoRefresh(autoRefreshMs);
   } catch (e) {
-    showError(e.message);
+    if (!silent) showError(e.message);
   }
 }
 
-async function fetchAndRenderMulti(urls, renderFn, autoRefreshMs = 0) {
-  showLoading();
+async function fetchAndRenderMulti(urls, renderFn, autoRefreshMs = 0, silent = false) {
+  if (!silent) showLoading();
   try {
     const results = await Promise.all(urls.map(u => fetch(u).then(r => r.json())));
     renderFn(...results);
     if (autoRefreshMs > 0) startAutoRefresh(autoRefreshMs);
   } catch (e) {
-    showError(e.message);
+    if (!silent) showError(e.message);
   }
 }
 
