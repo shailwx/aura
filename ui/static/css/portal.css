@@ -9,7 +9,7 @@
   --surface-2:    #f0f2f5;
   --border:       #dde1e7;
   --border-soft:  #ebeef2;
-  --text:         #1a1f2e;
+  --text:         #111111;
   --text-muted:   #6b7489;
   --text-light:   #9aa3b4;
 
@@ -70,6 +70,19 @@ body { display: flex; height: 100vh; overflow: hidden; }
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.sidebar-menu-btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* Main wrapper */

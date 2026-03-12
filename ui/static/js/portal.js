@@ -131,6 +131,15 @@ const submitModal    = document.getElementById("submitModal");
 document.addEventListener("DOMContentLoaded", () => {
   roleSelect.addEventListener("change", (e) => switchRole(e.target.value));
   refreshBtn.addEventListener("click", () => loadView(currentView));
+
+  // Sidebar collapse toggle
+  const sidebarEl     = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  if (sidebarToggle && sidebarEl) {
+    sidebarToggle.addEventListener("click", () => {
+      sidebarEl.classList.toggle("collapsed");
+    });
+  }
   searchInput.addEventListener("input", (e) => {
     searchTerm = e.target.value.toLowerCase();
     loadView(currentView);
