@@ -135,9 +135,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sidebar collapse toggle
   const sidebarEl     = document.getElementById("sidebar");
   const sidebarToggle = document.getElementById("sidebarToggle");
+  const sidebarOpenBtn = document.getElementById("sidebarOpenBtn");
   if (sidebarToggle && sidebarEl) {
     sidebarToggle.addEventListener("click", () => {
-      sidebarEl.classList.toggle("collapsed");
+      sidebarEl.classList.add("collapsed");
+      if (sidebarOpenBtn) sidebarOpenBtn.style.display = "";
+    });
+  }
+  if (sidebarOpenBtn && sidebarEl) {
+    sidebarOpenBtn.addEventListener("click", () => {
+      sidebarEl.classList.remove("collapsed");
+      sidebarOpenBtn.style.display = "none";
     });
   }
   searchInput.addEventListener("input", (e) => {

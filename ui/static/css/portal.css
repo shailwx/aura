@@ -80,11 +80,6 @@ body { display: flex; height: 100vh; overflow: hidden; }
   border-right: none;
 }
 
-.sidebar-menu-btn {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
 /* Main wrapper */
 .main-wrap {
   flex: 1;
@@ -103,6 +98,13 @@ body { display: flex; height: 100vh; overflow: hidden; }
   gap: 8px;
   padding: 18px 16px 14px;
   border-bottom: 1px solid var(--border-soft);
+}
+
+.sidebar-menu-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .logo-icon {
