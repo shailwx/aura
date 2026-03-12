@@ -223,7 +223,7 @@ async function loadView(viewId) {
     submit:    () => renderSubmitPage(),
     // Finance
     pending:   () => fetchAndRender("/api/portal/finance/pending",       renderPending),
-    approved:  () => fetchAndRender("/api/portal/finance/pending",       renderApprovalHistory),
+    approved:  () => fetchAndRender("/api/portal/finance/history",        renderApprovalHistory),
     // Compliance
     events:    () => fetchAndRender("/api/portal/compliance/events",     renderEvents, 5000),
     blocked:   () => fetchAndRender("/api/portal/compliance/blocked",    renderBlocked),
@@ -588,24 +588,141 @@ function fillDemo(text) {
   if (ta) ta.value = text;
 }
 
+// ── Pipeline card helpers ──────────────────────────────────────────────────────
+
+const AGENT_ORDER = ["Architect", "Governor", "Scout", "Sentinel", "Closer"];
+const AGENT_ICONS = { Architect: "🏗", Governor: "⚖", Scout: "🔍", Sentinel: "🛡", Closer: "✅" };
+
+function renderPipelineCards(container) {
+  container.innerHTML = AGENT_ORDER.map(name => `
+    <div class="pipeline-agent-card" id="agent-card-${name}" style="
+      display:flex;align-items:center;gap:12px;padding:12px 16px;
+      background:var(--surface);border:1px solid var(--border);border-radius:8px;
+      margin-bottom:8px;transition:border-color 0.2s,background 0.2s">
+      <span style="font-size:20px;width:28px;text-align:center">${AGENT_ICONS[name]}</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${name}</div>
+        <div class="agent-detail" style="font-size:12px;color:var(--text-muted);margin-top:2px">Idle</div>
+      </div>
+      <span class="agent-badge" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;
+        background:var(--gray-bg);color:var(--text-muted)">IDLE</span>
+    </div>`).join("");
+}
+
+function updateAgentCard(container, name, status, detail) {
+  const card = container.querySelector(`#agent-card-${name}`);
+  if (!card) return;
+  const colors = {
+    running: { bg: "var(--blue-bg)", border: "var(--blue-border)", badge: "var(--blue)", text: "#fff", label: "RUNNING" },
+    done:    { bg: "var(--green-bg)", border: "var(--green-border)", badge: "var(--green)", text: "#fff", label: "DONE" },
+    blocked: { bg: "var(--red-bg)", border: "var(--red-border)", badge: "var(--red)", text: "#fff", label: "BLOCKED" },
+    idle:    { bg: "var(--surface)", border: "var(--border)", badge: "var(--gray-bg)", text: "var(--text-muted)", label: "IDLE" },
+  };
+  const c = colors[status] || colors.idle;
+  card.style.background = c.bg;
+  card.style.borderColor = c.border;
+  card.querySelector(".agent-detail").textContent = detail || "";
+  const badge = card.querySelector(".agent-badge");
+  badge.textContent = c.label;
+  badge.style.background = c.badge;
+  badge.style.color = c.text;
+}
+
+function renderPipelineResult(container, ev) {
+  const bestVendor = ev.settlement ? (ev.compliance || []).find(c => c.name === ev.settlement.vendor_name) || {} : null;
+  container.insertAdjacentHTML("beforeend", `
+    <div style="margin-top:16px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;padding:16px">
+      <div style="color:var(--green);font-weight:700;font-size:14px;margin-bottom:10px">✓ Procurement Complete — ${ev.settlement?.settlement_id || ""}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:var(--text-muted)">Vendor:</span> <strong>${ev.settlement?.vendor_name || "—"}</strong></div>
+        <div><span style="color:var(--text-muted)">Amount:</span> <strong>${ev.settlement?.amount_usd != null ? "$" + ev.settlement.amount_usd.toLocaleString() : "—"}</strong></div>
+        <div><span style="color:var(--text-muted)">Status:</span> <strong>${ev.settlement?.status || "—"}</strong></div>
+        <div><span style="color:var(--text-muted)">Compliance:</span> <strong>${(ev.compliance || []).filter(c => c.status === "APPROVED").length} / ${(ev.compliance || []).length} cleared</strong></div>
+      </div>
+    </div>`);
+}
+
+function renderPipelineBlocked(container, ev) {
+  container.insertAdjacentHTML("beforeend", `
+    <div style="margin-top:16px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;padding:16px">
+      <div style="color:var(--red);font-weight:700;font-size:14px;margin-bottom:6px">🚫 Pipeline Blocked — Compliance Failure</div>
+      <div style="font-size:13px"><span style="color:var(--text-muted)">Vendor:</span> <strong>${ev.vendor}</strong></div>
+      <div style="font-size:13px;margin-top:4px"><span style="color:var(--text-muted)">Reason:</span> ${ev.reason}</div>
+      <div style="font-size:12px;margin-top:8px;color:var(--text-muted)">No payment has been initiated. Transaction aborted by Sentinel.</div>
+    </div>`);
+}
+
 async function doSubmit(message, resultEl) {
-  resultEl.innerHTML = `<div class="loading-state" style="padding:16px 0"><div class="spinner"></div><p>Submitting…</p></div>`;
+  // Detect live vs demo mode
+  let geminiAvailable = false;
   try {
-    const res = await fetch("/api/portal/procurement/submit", {
+    const cap = await fetch("/api/portal/capabilities");
+    if (cap.ok) { const d = await cap.json(); geminiAvailable = d.gemini_available; }
+  } catch (_) { /* default to demo */ }
+
+  if (geminiAvailable) {
+    // ── Live mode: POST /run ────────────────────────────────────────────────
+    resultEl.innerHTML = `<div class="loading-state" style="padding:16px 0"><div class="spinner"></div><p>Running live agent pipeline…</p></div>`;
+    try {
+      const res = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await res.json();
+      resultEl.innerHTML = `
+        <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;padding:14px 16px">
+          <div style="color:var(--green);font-weight:700;margin-bottom:6px">✓ Live Pipeline Complete</div>
+          <div style="font-size:13px;white-space:pre-wrap">${data.response || JSON.stringify(data, null, 2)}</div>
+        </div>`;
+      showToast("Pipeline completed", "success");
+    } catch (e) {
+      resultEl.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+    }
+    return;
+  }
+
+  // ── Demo mode: SSE /api/portal/run/demo ─────────────────────────────────
+  resultEl.innerHTML = `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">Demo mode — streaming agent pipeline</div>`;
+  const cardsWrap = document.createElement("div");
+  resultEl.appendChild(cardsWrap);
+  renderPipelineCards(cardsWrap);
+
+  try {
+    const res = await fetch("/api/portal/run/demo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, user_id: "portal-user" }),
+      body: JSON.stringify({ message }),
     });
-    const data = await res.json();
-    resultEl.innerHTML = `
-      <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;padding:14px 16px">
-        <div style="color:var(--green);font-weight:700;margin-bottom:4px">✓ Request Submitted (Demo)</div>
-        <div style="font-size:13px;color:var(--text)">${data.message}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Request ID: <span class="font-mono">${data.request_id}</span> · ${data.submitted_at}</div>
-      </div>`;
-    showToast("Request submitted successfully", "success");
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop(); // keep incomplete line
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        let ev;
+        try { ev = JSON.parse(line.slice(6)); } catch (_) { continue; }
+        if (ev.type === "agent") {
+          updateAgentCard(cardsWrap, ev.name, ev.status, ev.detail);
+        } else if (ev.type === "result") {
+          renderPipelineResult(resultEl, ev);
+          showToast("Pipeline completed successfully", "success");
+        } else if (ev.type === "blocked") {
+          renderPipelineBlocked(resultEl, ev);
+          showToast("Pipeline blocked — compliance failure", "error");
+        }
+      }
+    }
   } catch (e) {
-    resultEl.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+    resultEl.innerHTML += `<div style="color:var(--red);font-size:13px;margin-top:8px">Stream error: ${e.message}</div>`;
   }
 }
 

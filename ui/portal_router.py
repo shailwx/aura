@@ -8,22 +8,28 @@ Mount this router in main.py:
 
 from __future__ import annotations
 
+import asyncio
+import json
+import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, AsyncGenerator
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/portal", tags=["portal"])
 
 
 def _ts(offset_minutes: int = 0) -> str:
+    """Return a UTC timestamp string offset by the given number of minutes in the past."""
     dt = datetime.utcnow() - timedelta(minutes=offset_minutes)
     return dt.strftime("%Y-%m-%d %H:%M UTC")
 
 
 def _uid() -> str:
+    """Return an 8-character uppercase random hex identifier."""
     return str(uuid.uuid4())[:8].upper()
 
 
@@ -100,16 +106,26 @@ _REVIEW_QUEUE: list[dict[str, Any]] = [
     {"id":"REQ-007","description":"Enterprise security audit — external consultants","amount_usd":4950.00,"vendor":"SecureNordic AS","submitted_by":"dave@acme.no","submitted_at":_ts(5),"policy_id":"POL-002","status":"PENDING"},
 ]
 
+_FINANCE_HISTORY: list[dict[str, Any]] = [
+    {"id":"REQ-001","description":"Buy 3 Laptop Pro 15 from best vendor","category":"hardware","amount_usd":3897.00,"vendor":"TechCorp Nordic","submitted_by":"alice@acme.no","submitted_at":_ts(45),"status":"APPROVED","approver_note":"Standard hardware purchase — approved","resolved_at":_ts(40)},
+    {"id":"REQ-002","description":"SaaS subscription — 10 seats Atlassian Jira Cloud","category":"saas","amount_usd":2400.00,"vendor":"SoftWave AS","submitted_by":"bob@acme.no","submitted_at":_ts(120),"status":"APPROVED","approver_note":"Approved — within budget allocation","resolved_at":_ts(115)},
+    {"id":"REQ-005","description":"Office chairs x20 — ergonomic","category":"office_supplies","amount_usd":980.00,"vendor":"FurniPro AS","submitted_by":"bob@acme.no","submitted_at":_ts(200),"status":"APPROVED","approver_note":"Below threshold, auto-approved","resolved_at":_ts(195)},
+    {"id":"REQ-008","description":"IT hardware bulk purchase — 12 workstations","category":"hardware","amount_usd":4850.00,"vendor":"ByteStream DK","submitted_by":"carol@acme.no","submitted_at":_ts(300),"status":"REJECTED","approver_note":"Rejected — vendor not on preferred supplier list","resolved_at":_ts(280)},
+    {"id":"REQ-010","description":"Annual security consulting retainer","category":"consulting","amount_usd":4500.00,"vendor":"SecureNordic AS","submitted_by":"dave@acme.no","submitted_at":_ts(500),"status":"APPROVED","approver_note":"Strategic priority — approved by CFO","resolved_at":_ts(490)},
+]
+
 
 # ── Procurement ───────────────────────────────────────────────────────────────
 
 @router.get("/procurement/history")
 async def get_procurement_history() -> list[dict[str, Any]]:
+    """Return the full list of historical procurement requests."""
     return _PROCUREMENT_HISTORY
 
 
 @router.get("/procurement/pipelines")
 async def get_active_pipelines() -> list[dict[str, Any]]:
+    """Return the list of currently active procurement pipelines with per-agent stage status."""
     return [
         {"request_id":"REQ-009","description":"Buy 8 Laptop Pro 15 — bulk order","agents":{"Architect":"done","Governor":"done","Scout":"running","Sentinel":"idle","Closer":"idle"},"current_stage":"Scout querying UCP vendor endpoints…","started_at":_ts(1)},
         {"request_id":"REQ-003","description":"AWS cloud hosting — 12-month reserved","agents":{"Architect":"done","Governor":"done","Scout":"done","Sentinel":"done","Closer":"blocked"},"current_stage":"Awaiting finance approval","started_at":_ts(30)},
@@ -118,12 +134,15 @@ async def get_active_pipelines() -> list[dict[str, Any]]:
 
 
 class SubmitRequest(BaseModel):
+    """Request body for the procurement submit endpoint."""
+
     message: str
     user_id: str = "portal-user"
 
 
 @router.post("/procurement/submit")
 async def submit_procurement(req: SubmitRequest) -> dict[str, Any]:
+    """Accept a new procurement request from the portal and return a confirmation with a generated request ID."""
     new_id = f"REQ-{_uid()}"
     return {"request_id":new_id,"status":"SUBMITTED","message":f"Request '{req.message[:80]}' submitted. The Aura agent pipeline will process it shortly.","submitted_at":_ts(0),"mode":"demo"}
 
@@ -132,11 +151,19 @@ async def submit_procurement(req: SubmitRequest) -> dict[str, Any]:
 
 @router.get("/finance/pending")
 async def get_pending_approvals() -> list[dict[str, Any]]:
+    """Return the list of procurement requests pending finance approval."""
     return _PENDING_APPROVALS
+
+
+@router.get("/finance/history")
+async def get_approval_history() -> list[dict[str, Any]]:
+    """Return the history of resolved (approved/rejected) finance items."""
+    return _FINANCE_HISTORY
 
 
 @router.post("/finance/approve/{item_id}")
 async def approve_item(item_id: str) -> dict[str, Any]:
+    """Mark a pending finance item as APPROVED; raise 404 if the item does not exist."""
     for item in _PENDING_APPROVALS:
         if item["id"] == item_id:
             item["status"] = "APPROVED"
@@ -146,6 +173,7 @@ async def approve_item(item_id: str) -> dict[str, Any]:
 
 @router.post("/finance/reject/{item_id}")
 async def reject_item(item_id: str) -> dict[str, Any]:
+    """Mark a pending finance item as REJECTED; raise 404 if the item does not exist."""
     for item in _PENDING_APPROVALS:
         if item["id"] == item_id:
             item["status"] = "REJECTED"
@@ -157,16 +185,19 @@ async def reject_item(item_id: str) -> dict[str, Any]:
 
 @router.get("/compliance/events")
 async def get_compliance_events() -> list[dict[str, Any]]:
+    """Return the audit log of all compliance check events."""
     return _COMPLIANCE_EVENTS
 
 
 @router.get("/compliance/blocked")
 async def get_blocked_vendors() -> list[dict[str, Any]]:
+    """Return the list of vendors currently on the compliance block list."""
     return _BLOCKED_VENDORS
 
 
 @router.get("/compliance/stats")
 async def get_compliance_stats() -> dict[str, Any]:
+    """Return aggregate compliance statistics: totals and rates for approved, blocked, and review outcomes."""
     total = len(_COMPLIANCE_EVENTS)
     approved = sum(1 for e in _COMPLIANCE_EVENTS if e["status"] == "APPROVED")
     blocked  = sum(1 for e in _COMPLIANCE_EVENTS if e["status"] == "BLOCKED")
@@ -178,11 +209,13 @@ async def get_compliance_stats() -> dict[str, Any]:
 
 @router.get("/itmanager/vendors")
 async def get_vendor_catalog() -> list[dict[str, Any]]:
+    """Return the full vendor catalog with compliance status and available inventory."""
     return _VENDOR_CATALOG
 
 
 @router.get("/itmanager/contracts")
 async def get_ssa_contracts() -> list[dict[str, Any]]:
+    """Return structured SSA contracts (Lisens, Kjøp, Drift, Smidig, Sky) for the IT manager view."""
     return _SSA_CONTRACTS
 
 
@@ -190,21 +223,25 @@ async def get_ssa_contracts() -> list[dict[str, Any]]:
 
 @router.get("/admin/metrics")
 async def get_admin_metrics() -> dict[str, Any]:
+    """Return agent invocation metrics and system health data for the admin dashboard."""
     return {**_AGENT_METRICS, "last_updated": _ts(0)}
 
 
 @router.get("/admin/policies")
 async def get_policies() -> list[dict[str, Any]]:
+    """Return the active policy rules used by the Governor and Sentinel agents."""
     return _POLICIES
 
 
 @router.get("/admin/queue")
 async def get_review_queue() -> list[dict[str, Any]]:
+    """Return the list of procurement requests currently awaiting compliance review."""
     return _REVIEW_QUEUE
 
 
 @router.post("/admin/review-queue/resolve/{item_id}")
 async def resolve_review_item(item_id: str, action: str = "approve") -> dict[str, Any]:
+    """Resolve a review-queue item as approved or rejected; raise 404 if the item does not exist."""
     for item in _REVIEW_QUEUE:
         if item["id"] == item_id:
             item["status"] = "APPROVED" if action == "approve" else "REJECTED"
@@ -216,6 +253,7 @@ async def resolve_review_item(item_id: str, action: str = "approve") -> dict[str
 
 @router.get("/overview")
 async def get_overview() -> dict[str, Any]:
+    """Return a consolidated system overview: request counts, agent status, recent history, and last-updated timestamp."""
     return {
         "total_requests": _AGENT_METRICS["total_requests"],
         "settled": _AGENT_METRICS["settled"],
@@ -235,4 +273,99 @@ async def get_overview() -> dict[str, Any]:
         "recent": _PROCUREMENT_HISTORY[:4],
         "last_updated": _ts(0),
     }
+
+
+# ── Capabilities ───────────────────────────────────────────────────────────────
+
+@router.get("/capabilities")
+async def get_capabilities() -> dict[str, Any]:
+    """Return portal runtime capabilities — whether Gemini/live mode is available."""
+    gemini_available = bool(
+        os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GOOGLE_API_KEY")
+    )
+    return {"gemini_available": gemini_available}
+
+
+# ── Demo pipeline SSE ──────────────────────────────────────────────────────────
+
+class RunDemoRequest(BaseModel):
+    """Request body for the demo pipeline run endpoint."""
+
+    message: str
+
+
+@router.post("/run/demo")
+async def run_demo_sse(req: RunDemoRequest) -> StreamingResponse:
+    """Run the full agent pipeline in demo mode and stream SSE events per agent stage."""
+    from tools.ucp_tools import discover_vendors
+    from tools.compliance_tools import verify_vendor_compliance
+    from tools.ap2_tools import generate_intent_mandate, settle_cart_mandate
+
+    async def _generate() -> AsyncGenerator[str, None]:
+        def _event(payload: dict[str, Any]) -> str:
+            return f"data: {json.dumps(payload)}\n\n"
+
+        query = req.message
+
+        # ── Architect ──────────────────────────────────────────────────────
+        yield _event({"type": "agent", "name": "Architect", "status": "running", "detail": f'Parsing: "{query}"'})
+        await asyncio.sleep(1.2)
+        yield _event({"type": "agent", "name": "Architect", "status": "done", "detail": "Intent parsed → delegating to pipeline"})
+
+        # ── Governor ───────────────────────────────────────────────────────
+        yield _event({"type": "agent", "name": "Governor", "status": "running", "detail": "Checking policy constraints…"})
+        await asyncio.sleep(0.8)
+        yield _event({"type": "agent", "name": "Governor", "status": "done", "detail": "Policy gates cleared"})
+
+        # ── Scout ──────────────────────────────────────────────────────────
+        yield _event({"type": "agent", "name": "Scout", "status": "running", "detail": "Querying UCP discovery network…"})
+        await asyncio.sleep(0.5)
+        vendors: list[dict[str, Any]] = await asyncio.to_thread(discover_vendors, query)
+        await asyncio.sleep(0.3)
+        yield _event({"type": "agent", "name": "Scout", "status": "done", "detail": f"Discovered {len(vendors)} vendors", "vendors": vendors})
+
+        # ── Sentinel ───────────────────────────────────────────────────────
+        yield _event({"type": "agent", "name": "Sentinel", "status": "running", "detail": "Running KYC/AML checks…"})
+        compliance_results: list[dict[str, Any]] = []
+        blocked_vendor: str | None = None
+        for v in vendors:
+            result: dict[str, Any] = await asyncio.to_thread(verify_vendor_compliance, v["name"])
+            compliance_results.append({**v, **result})
+            if result["status"] == "REJECTED" and blocked_vendor is None:
+                blocked_vendor = v["name"]
+            await asyncio.sleep(0.4)
+
+        if blocked_vendor:
+            yield _event({"type": "agent", "name": "Sentinel", "status": "blocked", "detail": f"COMPLIANCE_BLOCKED — {blocked_vendor} on AML blacklist"})
+            yield _event({"type": "agent", "name": "Closer", "status": "blocked", "detail": "PAYMENT_ABORTED — compliance failed"})
+            yield _event({"type": "blocked", "vendor": blocked_vendor, "reason": "AML blacklist — sanctioned entity", "compliance": compliance_results})
+            return
+
+        approved = [c for c in compliance_results if c["status"] == "APPROVED"]
+        yield _event({"type": "agent", "name": "Sentinel", "status": "done", "detail": f"SENTINEL_APPROVED — {len(approved)} vendors cleared"})
+
+        # ── Closer ─────────────────────────────────────────────────────────
+        yield _event({"type": "agent", "name": "Closer", "status": "running", "detail": "Generating Intent Mandate…"})
+        await asyncio.sleep(1.0)
+
+        best = min(approved, key=lambda x: x["unit_price_usd"])
+        qty = 3
+        amount = round(min(best["unit_price_usd"] * qty, 5000.0), 2)
+
+        mandate: dict[str, Any] = await asyncio.to_thread(
+            generate_intent_mandate,
+            vendor_id=best["id"],
+            vendor_name=best["name"],
+            amount=amount,
+            compliance_hash=best["compliance_hash"],
+        )
+        yield _event({"type": "agent", "name": "Closer", "status": "running", "detail": "Submitting to AP2 gateway…"})
+        await asyncio.sleep(0.8)
+
+        settlement: dict[str, Any] = await asyncio.to_thread(settle_cart_mandate, mandate)
+        yield _event({"type": "agent", "name": "Closer", "status": "done", "detail": f"SETTLEMENT_CONFIRMED — {settlement['settlement_id']}"})
+        yield _event({"type": "agent", "name": "Architect", "status": "done", "detail": "Procurement complete ✓"})
+        yield _event({"type": "result", "vendors": vendors, "compliance": compliance_results, "settlement": settlement})
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")
 

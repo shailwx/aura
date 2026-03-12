@@ -612,6 +612,9 @@ tbody td {
 .severity-high   { color: var(--red); font-weight: 700; font-size: 12px; }
 .severity-medium { color: var(--yellow); font-weight: 700; font-size: 12px; }
 .severity-low    { color: var(--green); font-weight: 600; font-size: 12px; }
+.severity-block  { color: var(--red); font-weight: 700; font-size: 12px; }
+.severity-review { color: var(--yellow); font-weight: 700; font-size: 12px; }
+.severity-warn   { color: var(--yellow); font-weight: 500; font-size: 12px; }
 
 /* ── Agent pipeline cards ──────────────────────────────────────────────────── */
 
