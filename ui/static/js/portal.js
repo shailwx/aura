@@ -322,11 +322,11 @@ function renderOverview(data) {
   toolbarActions.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">↻ Auto-refresh every 8s</span>`;
 
   const agentMeta = {
-    Architect: { icon: "🏛️", role: "Pipeline Commander" },
-    Governor:  { icon: "⚖️",  role: "Policy Gatekeeper" },
-    Scout:     { icon: "🔭", role: "Vendor Pathfinder" },
-    Sentinel:  { icon: "🛡️", role: "Compliance Guardian" },
-    Closer:    { icon: "💳", role: "Deal Executor" },
+    Architect: { icon: "🏛️", role: "Procurement Officer" },
+    Governor:  { icon: "⚖️",  role: "Finance Controller" },
+    Scout:     { icon: "🔭", role: "Category Manager" },
+    Sentinel:  { icon: "🛡️", role: "Compliance Officer" },
+    Closer:    { icon: "💳", role: "Payment Manager" },
   };
 
   const agentNodes = Object.entries(data.agents).map(([name, info], i, arr) => {
@@ -591,22 +591,31 @@ function fillDemo(text) {
 // ── Pipeline card helpers ──────────────────────────────────────────────────────
 
 const AGENT_ORDER = ["Architect", "Governor", "Scout", "Sentinel", "Closer"];
-const AGENT_ICONS = { Architect: "🏗", Governor: "⚖", Scout: "🔍", Sentinel: "🛡", Closer: "✅" };
+const AGENT_ICONS = {
+  Architect: { icon: "🏛️", role: "Procurement Officer" },
+  Governor:  { icon: "⚖️",  role: "Finance Controller" },
+  Scout:     { icon: "🔭", role: "Category Manager" },
+  Sentinel:  { icon: "🛡️", role: "Compliance Officer" },
+  Closer:    { icon: "💳", role: "Payment Manager" },
+};
 
 function renderPipelineCards(container) {
-  container.innerHTML = AGENT_ORDER.map(name => `
+  container.innerHTML = AGENT_ORDER.map(name => {
+    const meta = AGENT_ICONS[name] || { icon: "◈", role: "" };
+    return `
     <div class="pipeline-agent-card" id="agent-card-${name}" style="
       display:flex;align-items:center;gap:12px;padding:12px 16px;
       background:var(--surface);border:1px solid var(--border);border-radius:8px;
       margin-bottom:8px;transition:border-color 0.2s,background 0.2s">
-      <span style="font-size:20px;width:28px;text-align:center">${AGENT_ICONS[name]}</span>
+      <span style="font-size:20px;width:28px;text-align:center">${meta.icon}</span>
       <div style="flex:1">
-        <div style="font-weight:600;font-size:13px">${name}</div>
+        <div style="font-weight:600;font-size:13px">${meta.role}</div>
         <div class="agent-detail" style="font-size:12px;color:var(--text-muted);margin-top:2px">Idle</div>
       </div>
       <span class="agent-badge" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;
         background:var(--gray-bg);color:var(--text-muted)">IDLE</span>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 function updateAgentCard(container, name, status, detail) {
