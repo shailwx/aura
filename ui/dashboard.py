@@ -128,10 +128,10 @@ st.markdown("""
 AGENTS = ["Architect", "Scout", "Sentinel", "Closer"]
 AGENT_ICONS = {"Architect": "🏛️", "Scout": "🔭", "Sentinel": "🛡️", "Closer": "💳"}
 AGENT_DESC = {
-    "Architect": "Root orchestrator — parsing intent",
-    "Scout": "UCP vendor discovery",
-    "Sentinel": "KYC/AML compliance gate",
-    "Closer": "AP2 payment settlement",
+    "Architect": "Procurement Officer",
+    "Scout": "Category Manager",
+    "Sentinel": "Compliance Officer",
+    "Closer": "Payment Manager",
 }
 
 def init_state() -> None:
