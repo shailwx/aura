@@ -11,6 +11,7 @@ from __future__ import annotations
 import sys
 import os
 import time
+from collections.abc import Generator
 
 import streamlit as st
 import httpx
@@ -133,7 +134,7 @@ AGENT_DESC = {
     "Closer": "AP2 payment settlement",
 }
 
-def init_state():
+def init_state() -> None:
     defaults = {
         "running": False,
         "agent_status": {a: "idle" for a in AGENTS},      # idle|running|done|blocked
@@ -153,7 +154,7 @@ init_state()
 
 
 # ── Demo simulation ───────────────────────────────────────────────────────────
-def run_demo(query: str):
+def run_demo(query: str) -> Generator[None, None, None]:
     """Run the full pipeline using real tool functions with simulated timing."""
     ss = st.session_state
     ss["agent_status"] = {a: "idle" for a in AGENTS}
@@ -253,7 +254,7 @@ def run_demo(query: str):
 
 
 # ── Live mode (calls FastAPI) ─────────────────────────────────────────────────
-def run_live(query: str, api_url: str):
+def run_live(query: str, api_url: str) -> Generator[None, None, None]:
     ss = st.session_state
     ss["agent_status"] = {a: "running" for a in AGENTS}
     ss["agent_detail"] = {a: "Processing…" for a in AGENTS}
@@ -274,7 +275,7 @@ def run_live(query: str, api_url: str):
 
 
 # ── Agent card renderer ───────────────────────────────────────────────────────
-def render_agent_card(name: str):
+def render_agent_card(name: str) -> None:
     status = st.session_state["agent_status"][name]
     detail = st.session_state["agent_detail"][name]
     icon = AGENT_ICONS[name]

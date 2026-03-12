@@ -210,8 +210,10 @@ aura/
 │   ├── test_compliance_tool.py
 │   └── test_flow.py
 ├── Dockerfile            # Multi-stage production container
-├── kagent.yaml           # Kagent v1alpha2 CRD manifests
-├── AURA_PRD.md           # Product Requirements Document
+├── scripts/
+│   └── demo.sh           # Demo run script
+├── deploy/
+│   └── kagent.yaml       # Kagent v1alpha2 CRD manifests
 └── requirements.txt
 ```
 
@@ -225,7 +227,7 @@ aura/
 | :--- | :--- |
 | [Business Guide](docs/BUSINESS_GUIDE.md) | What Aura does, business value, use cases, glossary — no code |
 | [Demo Script](docs/DEMO_SCRIPT.md) | Hackathon pitch guide, live demo steps, and judge Q&A prep |
-| [PRD](AURA_PRD.md) | Full Product Requirements Document |
+| [PRD](docs/PRD.md) | Full Product Requirements Document |
 
 ### For Technical Users
 

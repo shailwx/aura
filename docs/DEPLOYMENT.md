@@ -52,7 +52,7 @@ docker push europe-north1-docker.pkg.dev/ai-agent-labs-oslo-26-team-6/aura/aura:
 ## Step 4 — Deploy Agents
 
 ```bash
-kubectl apply -f kagent.yaml
+kubectl apply -f deploy/kagent.yaml
 ```
 
 Verify all agents are running:

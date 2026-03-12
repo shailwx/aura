@@ -36,8 +36,20 @@
 | [PROTOCOLS.md](PROTOCOLS.md) | UCP and AP2 protocol specifications |
 | [API_REFERENCE.md](API_REFERENCE.md) | REST API endpoints, request/response schemas, and curl examples |
 | [TECHNICAL_GUIDE.md](TECHNICAL_GUIDE.md) | Local setup, environment variables, agent internals, and production checklist |
+| [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md) | Formal agent contracts, tool signatures, data schemas, NFRs, and security model |
 | [TESTING.md](TESTING.md) | Test suite layout, how to run tests, and coverage guide |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker, Kagent (Kubernetes), and GCP Cloud Run deployment instructions |
+
+---
+
+## Planning
+
+| Document | Description |
+|----------|-------------|
+| [PRD.md](PRD.md) | Full Product Requirements Document |
+| [ROADMAP.md](ROADMAP.md) | Product roadmap: v0.0.1 prototype → v1.0.0 production milestones |
+| [TASKS.md](TASKS.md) | Granular task board mapped to milestones with P0–P3 priorities |
+| [IMPLEMENTATION_ISSUES.md](IMPLEMENTATION_ISSUES.md) | GitHub issue drafts and implementation backlog |
 
 ---
 

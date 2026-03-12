@@ -97,9 +97,11 @@ aura/
 │   ├── test_compliance_tool.py
 │   └── test_flow.py
 ├── Dockerfile                # Multi-stage production container
-├── kagent.yaml               # Kagent v1alpha2 CRD manifests
-├── requirements.txt
-└── AURA_PRD.md
+├── scripts/
+│   └── demo.sh               # Demo run script
+├── deploy/
+│   └── kagent.yaml           # Kagent v1alpha2 CRD manifests
+└── requirements.txt
 ```
 
 ---

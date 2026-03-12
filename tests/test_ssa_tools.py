@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import pytest
 
 from tools.ssa_tools import (
     FOA_TENDER_THRESHOLD_NOK,

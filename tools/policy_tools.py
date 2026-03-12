@@ -38,10 +38,11 @@ class PolicyDecision:
     snapshot_hash: str = ""
 
 
-_SEVERITY_RANK = {Severity.WARN: 1, Severity.REVIEW: 2, Severity.BLOCK: 3}
+_SEVERITY_RANK = {Severity.WARN: 1, Severity.REVIEW: 2, Severity.BLOCK: 3}  # Ordinal rank used to find the most-severe violation
 
 
 def _worst_decision(violations: list[PolicyViolation]) -> str:
+    """Return the highest-severity decision string across all violations, or ALLOW if there are none."""
     if not violations:
         return "ALLOW"
     worst = max(violations, key=lambda v: _SEVERITY_RANK.get(Severity(v.severity), 0))
@@ -49,6 +50,7 @@ def _worst_decision(violations: list[PolicyViolation]) -> str:
 
 
 def _make_decision(violations: list[PolicyViolation], evaluated: list[str], snapshot_hash: str) -> dict[str, Any]:
+    """Assemble a serialised PolicyDecision dict from a list of violations, evaluated rule IDs, and the policy snapshot hash."""
     decision = _worst_decision(violations)
     return asdict(
         PolicyDecision(

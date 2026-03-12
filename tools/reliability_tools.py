@@ -23,6 +23,7 @@ class CircuitBreaker:
     opened_at: float | None = None
 
     def before_call(self) -> None:
+        """Check if the circuit is open; reset to closed if reset_timeout has elapsed, otherwise raise CircuitOpenError."""
         if self.opened_at is None:
             return
         now = time.time()
@@ -33,10 +34,12 @@ class CircuitBreaker:
         raise CircuitOpenError("Circuit is open. Skipping downstream call.")
 
     def record_success(self) -> None:
+        """Reset failure_count to zero and clear opened_at, returning the circuit to closed state."""
         self.failure_count = 0
         self.opened_at = None
 
     def record_failure(self) -> None:
+        """Increment failure_count and trip the circuit (set opened_at) when failure_threshold is reached."""
         self.failure_count += 1
         if self.failure_count >= self.failure_threshold:
             self.opened_at = time.time()
