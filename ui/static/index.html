@@ -12,8 +12,7 @@
     <div class="sidebar-logo">
       <span class="logo-icon">◎</span>
       <span class="logo-text">Aura</span>
-      <span class="logo-sub">Commerce Portal</span>
-    </div>
+      <span class="logo-sub">Commerce Portal</span>      <button class="btn-icon sidebar-menu-btn" id="sidebarToggle" title="Collapse sidebar">«</button>    </div>
 
     <div class="role-selector-wrap">
       <label class="role-label">VIEWING AS</label>
@@ -24,6 +23,15 @@
         <option value="itmanager">IT Manager</option>
         <option value="admin">Admin</option>
       </select>
+    </div>
+
+    <div class="mode-selector-wrap">
+      <label class="role-label">PIPELINE MODE</label>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn active" data-mode="demo">🎭 Demo</button>
+        <button class="mode-btn" data-mode="live">🔴 Live (Vertex AI)</button>
+      </div>
+      <div class="mode-status" id="modeStatus"></div>
     </div>
 
     <nav class="sidebar-nav" id="sidebarNav">
@@ -54,6 +62,7 @@
     <!-- Top header bar -->
     <header class="topbar">
       <div class="topbar-left">
+        <button class="btn-icon sidebar-open-btn" id="sidebarOpenBtn" title="Open sidebar" style="display:none">»</button>
         <span class="breadcrumb" id="breadcrumb">Procurement Officer</span>
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-view" id="breadcrumbView">Request History</span>

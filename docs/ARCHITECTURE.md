@@ -13,13 +13,13 @@ graph TD
     User([👤 Enterprise User]) -->|Natural language<br/>procurement request| Architect
 
     subgraph Aura MAS ["🤖 Aura Multi-Agent System (Google ADK)"]
-        Architect["🏛️ Architect<br/><i>Pipeline Commander</i><br/>gemini-2.5-flash"]
+        Architect["🏛️ Architect<br/><i>Procurement Officer</i><br/>gemini-2.5-flash"]
 
         subgraph Pipeline ["⚙️ AuraPipeline (SequentialAgent)"]
-            Governor["⚖️ Governor<br/><i>Policy Gatekeeper</i><br/>LlmAgent"]
-            Scout["🔭 Scout<br/><i>Vendor Pathfinder</i><br/>LlmAgent"]
-            Sentinel["🛡️ Sentinel<br/><i>Compliance Guardian</i><br/>LlmAgent"]
-            Closer["💳 Closer<br/><i>Deal Executor</i><br/>LlmAgent"]
+            Governor["⚖️ Governor<br/><i>Finance Controller</i><br/>LlmAgent"]
+            Scout["🔭 Scout<br/><i>Category Manager</i><br/>LlmAgent"]
+            Sentinel["🛡️ Sentinel<br/><i>Compliance Officer</i><br/>LlmAgent"]
+            Closer["💳 Closer<br/><i>Payment Manager</i><br/>LlmAgent"]
         end
 
         Architect -->|delegates to| Pipeline

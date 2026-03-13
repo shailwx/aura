@@ -11,6 +11,7 @@ from __future__ import annotations
 import sys
 import os
 import time
+from collections.abc import Generator
 
 import streamlit as st
 import httpx
@@ -32,80 +33,83 @@ st.set_page_config(
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Main background */
-    .stApp { background-color: #0d1117; color: #e6edf3; }
+    /* Main background — light theme matching portal */
+    .stApp { background-color: #f4f6f8; color: #111111; }
+    [data-testid="stToolbar"] { visibility: hidden; }
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 
     /* Agent status card */
     .agent-card {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 10px;
-        padding: 16px 20px;
-        margin-bottom: 10px;
+        background: #ffffff;
+        border: 1px solid #dde1e7;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 8px;
         transition: all 0.3s ease;
     }
     .agent-card.running {
-        border-color: #f0b429;
-        background: #1c1a0f;
-        box-shadow: 0 0 12px rgba(240, 180, 41, 0.3);
+        border-color: #b45309;
+        background: #fef9e7;
+        box-shadow: 0 0 8px rgba(180, 83, 9, 0.15);
     }
     .agent-card.done {
-        border-color: #238636;
-        background: #0c1a0f;
-        box-shadow: 0 0 12px rgba(35, 134, 54, 0.2);
+        border-color: #1a7f4e;
+        background: #e6f7ef;
+        box-shadow: 0 0 8px rgba(26, 127, 78, 0.12);
     }
     .agent-card.blocked {
-        border-color: #da3633;
-        background: #1f0d0d;
-        box-shadow: 0 0 12px rgba(218, 54, 51, 0.3);
+        border-color: #c0392b;
+        background: #fdecea;
+        box-shadow: 0 0 8px rgba(192, 57, 43, 0.15);
     }
-    .agent-name { font-size: 1.05rem; font-weight: 600; }
-    .agent-status { font-size: 0.85rem; color: #8b949e; margin-top: 4px; }
-    .agent-status.running { color: #f0b429; }
-    .agent-status.done { color: #3fb950; }
-    .agent-status.blocked { color: #f85149; }
+    .agent-name { font-size: 1.05rem; font-weight: 600; color: #111111; }
+    .agent-status { font-size: 0.85rem; color: #6b7489; margin-top: 4px; }
+    .agent-status.running { color: #b45309; }
+    .agent-status.done { color: #1a7f4e; }
+    .agent-status.blocked { color: #c0392b; }
 
     /* Result cards */
     .result-card {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 10px;
+        background: #ffffff;
+        border: 1px solid #dde1e7;
+        border-radius: 8px;
         padding: 20px;
         margin-top: 10px;
     }
     .settled-card {
-        background: #0c1a0f;
-        border: 2px solid #238636;
-        border-radius: 10px;
+        background: #e6f7ef;
+        border: 2px solid #1a7f4e;
+        border-radius: 8px;
         padding: 24px;
         margin-top: 16px;
         text-align: center;
     }
     .blocked-card {
-        background: #1f0d0d;
-        border: 2px solid #da3633;
-        border-radius: 10px;
+        background: #fdecea;
+        border: 2px solid #c0392b;
+        border-radius: 8px;
         padding: 24px;
         margin-top: 16px;
         text-align: center;
     }
     .badge-approved {
-        background: #238636; color: white;
+        background: #1a7f4e; color: white;
         padding: 3px 10px; border-radius: 20px; font-size: 0.8rem;
     }
     .badge-rejected {
-        background: #da3633; color: white;
+        background: #c0392b; color: white;
         padding: 3px 10px; border-radius: 20px; font-size: 0.8rem;
     }
-    .metric-big { font-size: 2rem; font-weight: 700; color: #3fb950; }
-    .metric-label { font-size: 0.85rem; color: #8b949e; }
-    .divider { border-top: 1px solid #30363d; margin: 16px 0; }
+    .metric-big { font-size: 2rem; font-weight: 700; color: #00a89d; }
+    .metric-label { font-size: 0.85rem; color: #6b7489; }
+    .divider { border-top: 1px solid #dde1e7; margin: 16px 0; }
 
     /* Header */
-    h1 { color: #e6edf3 !important; }
-    .subtitle { color: #8b949e; font-size: 1rem; margin-top: -16px; }
+    h1 { color: #111111 !important; }
+    .subtitle { color: #6b7489; font-size: 1rem; margin-top: -16px; }
     .stButton > button {
-        background: linear-gradient(135deg, #1f6feb, #388bfd);
+        background: #00a89d;
         color: white;
         border: none;
         border-radius: 8px;
@@ -113,11 +117,11 @@ st.markdown("""
         padding: 10px 24px;
         width: 100%;
     }
-    .stButton > button:hover { background: linear-gradient(135deg, #388bfd, #58a6ff); }
+    .stButton > button:hover { background: #007f77; }
     [data-testid="stTextInput"] input {
-        background: #161b22 !important;
-        color: #e6edf3 !important;
-        border: 1px solid #30363d !important;
+        background: #ffffff !important;
+        color: #111111 !important;
+        border: 1px solid #dde1e7 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -127,13 +131,13 @@ st.markdown("""
 AGENTS = ["Architect", "Scout", "Sentinel", "Closer"]
 AGENT_ICONS = {"Architect": "🏛️", "Scout": "🔭", "Sentinel": "🛡️", "Closer": "💳"}
 AGENT_DESC = {
-    "Architect": "Root orchestrator — parsing intent",
-    "Scout": "UCP vendor discovery",
-    "Sentinel": "KYC/AML compliance gate",
-    "Closer": "AP2 payment settlement",
+    "Architect": "Procurement Officer",
+    "Scout": "Category Manager",
+    "Sentinel": "Compliance Officer",
+    "Closer": "Payment Manager",
 }
 
-def init_state():
+def init_state() -> None:
     defaults = {
         "running": False,
         "agent_status": {a: "idle" for a in AGENTS},      # idle|running|done|blocked
@@ -153,7 +157,7 @@ init_state()
 
 
 # ── Demo simulation ───────────────────────────────────────────────────────────
-def run_demo(query: str):
+def run_demo(query: str) -> Generator[None, None, None]:
     """Run the full pipeline using real tool functions with simulated timing."""
     ss = st.session_state
     ss["agent_status"] = {a: "idle" for a in AGENTS}
@@ -253,13 +257,13 @@ def run_demo(query: str):
 
 
 # ── Live mode (calls FastAPI) ─────────────────────────────────────────────────
-def run_live(query: str, api_url: str):
+def run_live(query: str, api_url: str) -> Generator[None, None, None]:
     ss = st.session_state
     ss["agent_status"] = {a: "running" for a in AGENTS}
     ss["agent_detail"] = {a: "Processing…" for a in AGENTS}
     yield
     try:
-        resp = httpx.post(f"{api_url}/run", json={"message": query}, timeout=60.0)
+        resp = httpx.post(f"{api_url}/run", json={"message": query}, timeout=120.0)
         resp.raise_for_status()
         data = resp.json()
         for a in AGENTS:
@@ -274,7 +278,7 @@ def run_live(query: str, api_url: str):
 
 
 # ── Agent card renderer ───────────────────────────────────────────────────────
-def render_agent_card(name: str):
+def render_agent_card(name: str) -> None:
     status = st.session_state["agent_status"][name]
     detail = st.session_state["agent_detail"][name]
     icon = AGENT_ICONS[name]
@@ -289,13 +293,13 @@ def render_agent_card(name: str):
 
     css_class = "agent-card" + (" running" if status == "running" else " done" if status == "done" else " blocked" if status == "blocked" else "")
 
-    badge_color = {"idle": "#8b949e", "running": "#f0b429", "done": "#3fb950", "blocked": "#f85149"}.get(status, "#8b949e")
+    badge_color = {"idle": "#6b7489", "running": "#b45309", "done": "#1a7f4e", "blocked": "#c0392b"}.get(status, "#6b7489")
 
     st.markdown(f"""
     <div class="{css_class}">
         <div class="agent-name">{icon} {name}</div>
         <div class="agent-status" style="color:{badge_color};">{status_text}</div>
-        <div style="font-size:0.8rem; color:#8b949e; margin-top:6px;">{detail or desc}</div>
+        <div style="font-size:0.8rem; color:#6b7489; margin-top:6px;">{detail or desc}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -361,7 +365,7 @@ with left:
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
     st.markdown("### ⚙️ Stack")
     st.markdown("""
-    <div style='font-size:0.85rem; color:#8b949e; line-height:1.8;'>
+    <div style='font-size:0.85rem; color:#6b7489; line-height:1.8;'>
     🤖 <b>Google ADK</b> — Agent orchestration<br>
     ✨ <b>Gemini 2.5 Flash</b> — LLM via Vertex AI<br>
     🌐 <b>UCP</b> — Vendor discovery protocol<br>
@@ -394,20 +398,20 @@ with right:
                 rows_html = ""
                 for v in vendors:
                     flag = "🚩" if v["country"] == "XX" else "✅"
-                    price_color = "#f85149" if v["unit_price_usd"] < 1000 else "#e6edf3"
+                    price_color = "#c0392b" if v["unit_price_usd"] < 1000 else "#111111"
                     rows_html += f"""
                     <tr>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d;'>{v['name']}</td>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d; color:{price_color}; font-weight:600;'>${v['unit_price_usd']:,.2f}</td>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d;'>{v['available_units']} units</td>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d;'>{flag} {v['country']}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7;'>{v['name']}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7; color:{price_color}; font-weight:600;'>${v['unit_price_usd']:,.2f}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7;'>{v['available_units']} units</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7;'>{flag} {v['country']}</td>
                     </tr>"""
 
                 st.markdown(f"""
                 <div class='result-card'>
                 <table style='width:100%; border-collapse:collapse; font-size:0.9rem;'>
                 <thead>
-                <tr style='color:#8b949e; border-bottom:1px solid #30363d;'>
+                <tr style='color:#6b7489; border-bottom:1px solid #dde1e7;'>
                     <th style='padding:8px 12px; text-align:left;'>Vendor</th>
                     <th style='padding:8px 12px; text-align:left;'>Unit Price</th>
                     <th style='padding:8px 12px; text-align:left;'>Stock</th>
@@ -419,8 +423,7 @@ with right:
                 </div>
                 """, unsafe_allow_html=True)
             elif st.session_state["agent_status"]["Scout"] == "idle":
-                st.markdown("<div class='result-card' style='color:#8b949e; text-align:center; padding:40px;'>🔭 Vendor discovery results will appear here</div>", unsafe_allow_html=True)
-
+                st.markdown("<div class='result-card' style='color:#6b7489; text-align:center; padding:40px;'>🔭 Vendor discovery results will appear here</div>", unsafe_allow_html=True)
         # ── Compliance table ───────────────────────────────────────────────
         with compliance_placeholder:
             if compliance:
@@ -429,23 +432,23 @@ with right:
                 for c in compliance:
                     if c["status"] == "APPROVED":
                         badge = "<span class='badge-approved'>✅ APPROVED</span>"
-                        hash_display = f"<span style='font-family:monospace; font-size:0.75rem; color:#8b949e;'>{c['compliance_hash'][:16]}…</span>"
+                        hash_display = f"<span style='font-family:monospace; font-size:0.75rem; color:#6b7489;'>{c['compliance_hash'][:16]}…</span>"
                     else:
                         badge = "<span class='badge-rejected'>🚫 REJECTED</span>"
-                        hash_display = f"<span style='color:#f85149; font-size:0.8rem;'>{c.get('reason','AML_BLACKLIST')}</span>"
+                        hash_display = f"<span style='color:#c0392b; font-size:0.8rem;'>{c.get('reason','AML_BLACKLIST')}</span>"
 
                     rows_html += f"""
                     <tr>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d; font-weight:500;'>{c['name']}</td>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d;'>{badge}</td>
-                        <td style='padding:8px 12px; border-bottom:1px solid #30363d;'>{hash_display}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7; font-weight:500;'>{c['name']}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7;'>{badge}</td>
+                        <td style='padding:8px 12px; border-bottom:1px solid #dde1e7;'>{hash_display}</td>
                     </tr>"""
 
                 st.markdown(f"""
                 <div class='result-card'>
                 <table style='width:100%; border-collapse:collapse; font-size:0.9rem;'>
                 <thead>
-                <tr style='color:#8b949e; border-bottom:1px solid #30363d;'>
+                <tr style='color:#6b7489; border-bottom:1px solid #dde1e7;'>
                     <th style='padding:8px 12px; text-align:left;'>Vendor</th>
                     <th style='padding:8px 12px; text-align:left;'>Compliance Status</th>
                     <th style='padding:8px 12px; text-align:left;'>Hash / Reason</th>
@@ -462,18 +465,18 @@ with right:
                 st.markdown(f"""
                 <div class='blocked-card'>
                     <div style='font-size:2.5rem;'>⚠️</div>
-                    <div style='font-size:1.2rem; font-weight:700; color:#f85149; margin-top:8px;'>ERROR</div>
-                    <div style='color:#8b949e; margin-top:8px; font-size:0.9rem;'>{error}</div>
+                    <div style='font-size:1.2rem; font-weight:700; color:#c0392b; margin-top:8px;'>ERROR</div>
+                    <div style='color:#6b7489; margin-top:8px; font-size:0.9rem;'>{error}</div>
                 </div>""", unsafe_allow_html=True)
 
             elif blocked_vendor and not settlement:
                 st.markdown(f"""
                 <div class='blocked-card'>
                     <div style='font-size:3rem;'>🚫</div>
-                    <div style='font-size:1.4rem; font-weight:700; color:#f85149; margin-top:12px;'>COMPLIANCE BLOCKED</div>
-                    <div style='color:#e6edf3; margin-top:8px;'>Vendor <b>{blocked_vendor}</b> is on the AML blacklist</div>
-                    <div style='color:#8b949e; margin-top:8px; font-size:0.9rem;'>No payment was initiated. Contact the compliance team.</div>
-                    <div style='margin-top:16px; padding:12px; background:#2d1515; border-radius:6px; font-size:0.85rem; color:#f85149;'>
+                    <div style='font-size:1.4rem; font-weight:700; color:#c0392b; margin-top:12px;'>COMPLIANCE BLOCKED</div>
+                    <div style='color:#111111; margin-top:8px;'>Vendor <b>{blocked_vendor}</b> is on the AML blacklist</div>
+                    <div style='color:#6b7489; margin-top:8px; font-size:0.9rem;'>No payment was initiated. Contact the compliance team.</div>
+                    <div style='margin-top:16px; padding:12px; background:#fdecea; border-radius:6px; font-size:0.85rem; color:#c0392b;'>
                         🔒 AP2 Intent Mandate was never generated — transaction provably blocked
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -487,7 +490,7 @@ with right:
                 st.markdown(f"""
                 <div class='settled-card'>
                     <div style='font-size:3rem;'>✅</div>
-                    <div style='font-size:1.4rem; font-weight:700; color:#3fb950; margin-top:12px;'>SETTLEMENT CONFIRMED</div>
+                    <div style='font-size:1.4rem; font-weight:700; color:#1a7f4e; margin-top:12px;'>SETTLEMENT CONFIRMED</div>
                     <div style='margin-top:20px; display:flex; justify-content:center; gap:40px;'>
                         <div>
                             <div class='metric-big'>${amount:,.2f}</div>
@@ -498,10 +501,10 @@ with right:
                             <div class='metric-label'>Selected vendor</div>
                         </div>
                     </div>
-                    <div style='margin-top:20px; padding:12px; background:#0d2117; border-radius:6px; font-size:0.85rem; color:#8b949e;'>
-                        🔐 Settlement ID: <span style='font-family:monospace; color:#3fb950;'>{sid}</span>
+                    <div style='margin-top:20px; padding:12px; background:#e6f7ef; border-radius:6px; font-size:0.85rem; color:#6b7489;'>
+                        🔐 Settlement ID: <span style='font-family:monospace; color:#1a7f4e;'>{sid}</span>
                     </div>
-                    <div style='margin-top:8px; font-size:0.8rem; color:#8b949e;'>
+                    <div style='margin-top:8px; font-size:0.8rem; color:#6b7489;'>
                         Routed via AP2 Compliant Banking Gateway · ECDSA-P256 signed mandate
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -510,13 +513,13 @@ with right:
                 st.markdown(f"""
                 <div class='settled-card'>
                     <div style='font-size:2rem;'>✅</div>
-                    <div style='color:#3fb950; font-weight:700; font-size:1.2rem; margin-top:8px;'>LIVE AGENT RESPONSE</div>
-                    <div style='color:#e6edf3; margin-top:12px; text-align:left; font-size:0.9rem; white-space:pre-wrap;'>{settlement.get('message','')}</div>
+                    <div style='color:#1a7f4e; font-weight:700; font-size:1.2rem; margin-top:8px;'>LIVE AGENT RESPONSE</div>
+                    <div style='color:#111111; margin-top:12px; text-align:left; font-size:0.9rem; white-space:pre-wrap;'>{settlement.get('message','')}</div>
                 </div>""", unsafe_allow_html=True)
 
             elif not vendors:
                 st.markdown("""
-                <div style='text-align:center; padding:60px 40px; color:#8b949e; font-size:1rem;'>
+                <div style='text-align:center; padding:60px 40px; color:#6b7489; font-size:1rem;'>
                     <div style='font-size:4rem; margin-bottom:16px;'>🌐</div>
                     <div>Submit a procurement request to start the Aura pipeline</div>
                     <div style='font-size:0.85rem; margin-top:8px;'>Scout → Sentinel → Closer</div>

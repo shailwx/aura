@@ -9,7 +9,7 @@
   --surface-2:    #f0f2f5;
   --border:       #dde1e7;
   --border-soft:  #ebeef2;
-  --text:         #1a1f2e;
+  --text:         #111111;
   --text-muted:   #6b7489;
   --text-light:   #9aa3b4;
 
@@ -17,6 +17,11 @@
   --teal:         #00a89d;
   --teal-light:   #e0f7f6;
   --teal-dark:    #007f77;
+
+  /* Role accent (overridden per role via data-role) */
+  --role-accent:       #00a89d;
+  --role-accent-light: #e0f7f6;
+  --role-accent-dark:  #007f77;
 
   /* Status colours */
   --green:        #1a7f4e;
@@ -47,6 +52,14 @@
   --shadow-md:    0 4px 12px rgba(0,0,0,0.10);
 }
 
+/* ── Per-role accent themes ─────────────────────────────────────────────── */
+
+[data-role="procurement"] { --role-accent: #00a89d; --role-accent-light: #e0f7f6; --role-accent-dark: #007f77; }
+[data-role="finance"]     { --role-accent: #7c3aed; --role-accent-light: #ede9fe; --role-accent-dark: #5b21b6; }
+[data-role="compliance"]  { --role-accent: #dc2626; --role-accent-light: #fee2e2; --role-accent-dark: #991b1b; }
+[data-role="itmanager"]   { --role-accent: #2563eb; --role-accent-light: #dbeafe; --role-accent-dark: #1d4ed8; }
+[data-role="admin"]       { --role-accent: #d97706; --role-accent-light: #fef3c7; --role-accent-dark: #b45309; }
+
 html, body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
@@ -70,6 +83,14 @@ body { display: flex; height: 100vh; overflow: hidden; }
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: none;
 }
 
 /* Main wrapper */
@@ -92,11 +113,19 @@ body { display: flex; height: 100vh; overflow: hidden; }
   border-bottom: 1px solid var(--border-soft);
 }
 
+.sidebar-menu-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
 .logo-icon {
   font-size: 20px;
-  color: var(--teal);
+  color: var(--role-accent);
   font-weight: 700;
   line-height: 1;
+  transition: color 0.3s ease;
 }
 
 .logo-text {
@@ -149,7 +178,56 @@ body { display: flex; height: 100vh; overflow: hidden; }
   padding-right: 28px;
 }
 
-.role-select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-light); }
+.role-select:focus { border-color: var(--role-accent); box-shadow: 0 0 0 3px var(--role-accent-light); }
+
+/* ── Mode toggle ───────────────────────────────────────────────────────────── */
+
+.mode-selector-wrap {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mode-btn:hover { background: var(--border-soft); }
+
+.mode-btn.active {
+  background: var(--role-accent);
+  color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.mode-btn.active[data-mode="live"] {
+  background: #dc2626;
+}
+
+.mode-status {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 5px;
+  text-align: center;
+}
 
 /* ── Sidebar nav ───────────────────────────────────────────────────────────── */
 
@@ -189,10 +267,11 @@ body { display: flex; height: 100vh; overflow: hidden; }
 }
 
 .nav-item.active {
-  background: var(--teal-light);
-  color: var(--teal-dark);
+  background: var(--role-accent-light);
+  color: var(--role-accent-dark);
   font-weight: 600;
-  border-left-color: var(--teal);
+  border-left-color: var(--role-accent);
+  transition: all 0.3s ease;
 }
 
 .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
@@ -258,10 +337,11 @@ body { display: flex; height: 100vh; overflow: hidden; }
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
-  background: var(--teal-light);
-  color: var(--teal-dark);
+  background: var(--role-accent-light);
+  color: var(--role-accent-dark);
   border-radius: 20px;
-  border: 1px solid var(--teal);
+  border: 1px solid var(--role-accent);
+  transition: all 0.3s ease;
 }
 
 .btn-icon {
@@ -325,7 +405,7 @@ body { display: flex; height: 100vh; overflow: hidden; }
 
 .btn-primary {
   padding: 7px 16px;
-  background: var(--teal);
+  background: var(--role-accent);
   color: #fff;
   border: none;
   border-radius: var(--radius);
@@ -335,7 +415,7 @@ body { display: flex; height: 100vh; overflow: hidden; }
   transition: background 0.15s;
 }
 
-.btn-primary:hover { background: var(--teal-dark); }
+.btn-primary:hover { background: var(--role-accent-dark); }
 
 .btn-secondary {
   padding: 7px 16px;
@@ -612,6 +692,9 @@ tbody td {
 .severity-high   { color: var(--red); font-weight: 700; font-size: 12px; }
 .severity-medium { color: var(--yellow); font-weight: 700; font-size: 12px; }
 .severity-low    { color: var(--green); font-weight: 600; font-size: 12px; }
+.severity-block  { color: var(--red); font-weight: 700; font-size: 12px; }
+.severity-review { color: var(--yellow); font-weight: 700; font-size: 12px; }
+.severity-warn   { color: var(--yellow); font-weight: 500; font-size: 12px; }
 
 /* ── Agent pipeline cards ──────────────────────────────────────────────────── */
 
@@ -902,6 +985,7 @@ tbody td {
 .overview-hero-left  { flex: 1; }
 .overview-title      { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
 .overview-badge-demo { font-size: 11px; background: var(--teal); color: white; border-radius: 4px; padding: 2px 6px; vertical-align: middle; font-weight: 600; margin-left: 6px; }
+.overview-badge-live { font-size: 11px; background: #dc2626; color: white; border-radius: 4px; padding: 2px 6px; vertical-align: middle; font-weight: 600; margin-left: 6px; animation: pulse 1.3s infinite; }
 .overview-subtitle   { font-size: 14px; color: var(--text-muted); margin-bottom: 4px; }
 .overview-tagline    { font-size: 12px; color: var(--text-light); }
 .overview-hero-right { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0; padding-top: 4px; }

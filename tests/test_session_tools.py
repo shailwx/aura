@@ -23,6 +23,7 @@ def test_redis_backend_requires_url(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_redis_backend_builds_with_url(monkeypatch: pytest.MonkeyPatch):
+    pytest.importorskip("redis", reason="redis package not installed")
     monkeypatch.setenv("SESSION_BACKEND", "redis")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("REDIS_SESSION_KEY_PREFIX", "aura:test")
