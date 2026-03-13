@@ -20,7 +20,7 @@ import logging
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -77,6 +77,15 @@ app = FastAPI(
 
 # ── Portal ─────────────────────────────────────────────────────────────────────
 app.include_router(portal_router)
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """Redirect root to the portal UI."""
+    return RedirectResponse(url="/portal")
+
+
+# Mount static files AFTER route definitions (mounted apps act as catch-alls)
 app.mount("/portal", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "ui", "static"), html=True), name="portal")
 
 

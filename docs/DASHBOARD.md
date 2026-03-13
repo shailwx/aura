@@ -37,17 +37,32 @@ The dashboard opens automatically at `http://localhost:8501`.
 
 ### Demo Mode (default)
 
-Runs the actual tool functions (`discover_vendors`, `verify_vendor_compliance`, `generate_intent_mandate`, `settle_cart_mandate`) directly in-process with simulated timing delays. **No Gemini / Vertex AI credentials required.** Ideal for quick demos and local development.
+Runs the actual tool functions (`discover_vendors`, `verify_vendor_compliance`, `generate_intent_mandate`, `settle_cart_mandate`) directly in-process with simulated timing delays. No AI model is involved — results are deterministic and come from mock data. **No Gemini / Vertex AI credentials required.** Ideal for quick demos and local development.
 
-### API Mode
+### Live Mode (Vertex AI)
 
-Calls the Aura FastAPI server at `http://localhost:8080/run`. Requires the server to be running:
+Sends the procurement request to the FastAPI `/run` endpoint, which runs the **real Google ADK `Runner`** with **Gemini 2.5 Flash** on Vertex AI. The request flows through the actual multi-agent pipeline:
+
+1. Intent is parsed and validated by `parse_procurement_intent`
+2. A `genai_types.Content` message is constructed
+3. `Runner.run_async()` sends it to Gemini, which orchestrates the Architect → Governor → Scout → Sentinel → Closer agents
+4. Gemini decides which tools to call and how to coordinate the agents
+
+Requires the FastAPI server to be running:
 
 ```bash
-uvicorn main:app --reload --port 8080
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Switch between modes in the dashboard sidebar.
+**Prerequisites for Live mode:**
+
+| Requirement | Details |
+|:------------|:--------|
+| FastAPI server | Running on `http://localhost:8000` |
+| Google Cloud credentials | `GOOGLE_CLOUD_PROJECT` or `GOOGLE_API_KEY` env var set |
+| Auth header | Valid API key for the `/run` endpoint |
+
+Switch between modes using the radio button in the dashboard sidebar.
 
 ---
 

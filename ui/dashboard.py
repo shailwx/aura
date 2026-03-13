@@ -263,7 +263,7 @@ def run_live(query: str, api_url: str) -> Generator[None, None, None]:
     ss["agent_detail"] = {a: "Processing…" for a in AGENTS}
     yield
     try:
-        resp = httpx.post(f"{api_url}/run", json={"message": query}, timeout=60.0)
+        resp = httpx.post(f"{api_url}/run", json={"message": query}, timeout=120.0)
         resp.raise_for_status()
         data = resp.json()
         for a in AGENTS:

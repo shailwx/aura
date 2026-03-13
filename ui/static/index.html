@@ -25,6 +25,15 @@
       </select>
     </div>
 
+    <div class="mode-selector-wrap">
+      <label class="role-label">PIPELINE MODE</label>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn active" data-mode="demo">🎭 Demo</button>
+        <button class="mode-btn" data-mode="live">🔴 Live (Vertex AI)</button>
+      </div>
+      <div class="mode-status" id="modeStatus"></div>
+    </div>
+
     <nav class="sidebar-nav" id="sidebarNav">
       <!-- Populated by JS based on role -->
     </nav>

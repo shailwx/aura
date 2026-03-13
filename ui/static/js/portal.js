@@ -12,7 +12,7 @@ const ROLES = {
     sections: [
       {
         label: "HOME",
-        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+        items: [{ id: "overview", icon: "📊", label: "Overview" }],
       },
       {
         label: "OBSERVE",
@@ -36,7 +36,7 @@ const ROLES = {
     sections: [
       {
         label: "HOME",
-        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+        items: [{ id: "overview", icon: "📊", label: "Overview" }],
       },
       {
         label: "REVIEW",
@@ -54,7 +54,7 @@ const ROLES = {
     sections: [
       {
         label: "HOME",
-        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+        items: [{ id: "overview", icon: "📊", label: "Overview" }],
       },
       {
         label: "MONITOR",
@@ -73,7 +73,7 @@ const ROLES = {
     sections: [
       {
         label: "HOME",
-        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+        items: [{ id: "overview", icon: "📊", label: "Overview" }],
       },
       {
         label: "CATALOG",
@@ -91,7 +91,7 @@ const ROLES = {
     sections: [
       {
         label: "HOME",
-        items: [{ id: "overview", icon: "◉", label: "Overview" }],
+        items: [{ id: "overview", icon: "📊", label: "Overview" }],
       },
       {
         label: "RUN & OPERATE",
@@ -112,6 +112,8 @@ let currentRole = "procurement";
 let currentView = "history";
 let searchTerm  = "";
 let autoRefreshTimer = null;
+let portalMode = "demo"; // "demo" or "live"
+let geminiAvailable = false;
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 
@@ -158,8 +160,44 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("modalCancelBtn").addEventListener("click", closeModal);
   document.getElementById("modalSubmitBtn").addEventListener("click", submitRequest);
 
+  // Mode toggle
+  initModeToggle();
+
   switchRole("procurement");
 });
+
+// ── Mode toggle ────────────────────────────────────────────────────────────────
+
+async function initModeToggle() {
+  const modeStatus = document.getElementById("modeStatus");
+  try {
+    const cap = await fetch("/api/portal/capabilities");
+    if (cap.ok) { const d = await cap.json(); geminiAvailable = d.gemini_available; }
+  } catch (_) {}
+
+  if (geminiAvailable) {
+    modeStatus.textContent = "✓ Vertex AI connected";
+    modeStatus.style.color = "var(--green)";
+  } else {
+    modeStatus.textContent = "Vertex AI not available";
+    modeStatus.style.color = "var(--text-light)";
+  }
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mode === "live" && !geminiAvailable) {
+        showToast("Vertex AI not available — set GOOGLE_CLOUD_PROJECT or GOOGLE_API_KEY", "error");
+        return;
+      }
+      portalMode = btn.dataset.mode;
+      document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      // Refresh current view to update mode badge
+      loadView(currentView);
+      showToast(`Switched to ${portalMode === "live" ? "Live (Vertex AI)" : "Demo"} mode`, "success");
+    });
+  });
+}
 
 // ── Role switching ─────────────────────────────────────────────────────────────
 
@@ -172,6 +210,10 @@ function switchRole(role) {
   const def = ROLES[role];
   breadcrumb.textContent = def.label;
   roleBadge.textContent  = def.label;
+
+  // Apply role color theme
+  document.documentElement.setAttribute("data-role", role);
+  document.body.setAttribute("data-role", role);
 
   // Build sidebar nav
   navEl.innerHTML = "";
@@ -367,10 +409,14 @@ function renderOverview(data) {
       <td class="text-right td-amount">${usd(r.amount_usd)}</td>
     </tr>`).join("");
 
+  const modeBadge = portalMode === "live"
+    ? `<span class="overview-badge-live">LIVE</span>`
+    : `<span class="overview-badge-demo">DEMO</span>`;
+
   viewEl.innerHTML = `
     <div class="overview-hero">
       <div class="overview-hero-left">
-        <div class="overview-title">Aura <span class="overview-badge-demo">DEMO</span></div>
+        <div class="overview-title">Aura ${modeBadge}</div>
         <div class="overview-subtitle">Autonomous Reliable Agentic Commerce &middot; Google ADK + Gemini 2.5 Flash via Vertex AI</div>
         <div class="overview-tagline">5-agent sequential pipeline: intent &rarr; policy gate &rarr; vendor discovery &rarr; KYC/AML &rarr; AP2 settlement</div>
       </div>
@@ -679,14 +725,10 @@ function renderPipelineBlocked(container, ev) {
 }
 
 async function doSubmit(message, resultEl) {
-  // Detect live vs demo mode
-  let geminiAvailable = false;
-  try {
-    const cap = await fetch("/api/portal/capabilities");
-    if (cap.ok) { const d = await cap.json(); geminiAvailable = d.gemini_available; }
-  } catch (_) { /* default to demo */ }
+  // Use the user-selected mode toggle
+  const useLive = portalMode === "live" && geminiAvailable;
 
-  if (geminiAvailable) {
+  if (useLive) {
     // ── Live mode: POST /run ────────────────────────────────────────────────
     resultEl.innerHTML = `<div class="loading-state" style="padding:16px 0"><div class="spinner"></div><p>Running live agent pipeline…</p></div>`;
     try {
